@@ -1,0 +1,83 @@
+{
+  "ticker": {
+    "CryptoBridge": {
+      "api": "https://api.crypto-bridge.org/api/v1/ticker",
+      "market": "https://wallet.crypto-bridge.org/market/BRIDGE.BCARD_BRIDGE.BTC",
+      "filter": "BCARD_BTC"
+    },
+    "Crex24": {
+      "api": "https://api.crex24.com/v2/public/tickers?instrument=BCARD-BTC",
+      "market": "https://crex24.com/exchange/BCARD-BTC"
+    }
+  },
+  "color": {
+    "prices": 3447003,
+    "coininfo": 888688,
+    "explorer": 888688,
+    "other": 15662976,
+    "error": 9375030
+  },
+  "devs": [
+    "422003829098414100",
+    "450447363119644685",
+    "464599914962485260"
+  ],
+  "stages": [
+    {
+      "block": 120000,
+      "coll": 5000,
+      "mn": 70.08,
+      "pos": 2.92
+    },
+    {
+      "block": 180000,
+      "coll": 10000,
+      "mn": 83.69,
+      "pos": 2.79
+    },
+    {
+      "block": 240000,
+      "coll": 15000,
+      "mn": 101.69,
+      "pos": 3.39
+    },
+    {
+      "block": 300000,
+      "coll": 20000,
+      "mn": 110.69,
+      "pos": 3.69
+    },
+    {
+      "block": 400000,
+      "coll": 25000,
+      "mn": 83.69,
+      "pos": 2.79
+    },
+    {
+      "block": 500000,
+      "coll": 30000,
+      "mn": 56.69,
+      "pos": 1.89
+    },
+    {
+      "block": -1,
+      "coll": 30000,
+      "mn": 9.00,
+      "pos": 1.00
+    }
+  ],
+  "requests": {
+    "blockcount": "CARDbuyers-cli getblockcount",
+    "mncount": "CARDbuyers-cli masternode count",
+    "supply": "http://explorer.cardbuyers.cc:3001/ext/getmoneysupply",
+    "balance": "http://explorer.cardbuyers.cc:3001/ext/getaddress/",
+    "blockindex": "CARDbuyers-cli getblockhash",
+    "blockhash": "CARDbuyers-cli getblock"
+  },
+  "sourcecode": "https://github.com/neo3587/discord_cryptobot",
+  "channel": "479496777700212746",
+  "prefix": "!",
+  "coin": "BCARD",
+  "blocktime": 60,
+  "token": "NDkwNTM4NjY1NzY4OTEwODQ5.Dn66EQ.krDSiz630cqIS9Fuywa5BSdyMGI"
+}
