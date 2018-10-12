@@ -1,9 +1,8 @@
 {
   "ticker": {
     "CryptoBridge": {
-      "api": "https://api.crypto-bridge.org/api/v1/ticker",
-      "market": "https://wallet.crypto-bridge.org/market/BRIDGE.SNO_BRIDGE.BTC",
-      "filter": "SNO_BTC"
+      "api": "https://api.crypto-bridge.org/api/v1/ticker/SNO_BTC",
+      "market": "https://wallet.crypto-bridge.org/market/BRIDGE.SNO_BRIDGE.BTC"
     },
     "Crex24": {
       "api": "https://api.crex24.com/v2/public/tickers?instrument=SNO-BTC",
@@ -91,7 +90,7 @@
     "blockhash": "savenode-cli getblock"
   },
   "sourcecode": "https://github.com/neo3587/discord_cryptobot",
-  "channel": "481142712272420865",
+  "channel": "498914267857158154",
   "prefix": "!",
   "coin": "SNO",
   "blocktime": 60,

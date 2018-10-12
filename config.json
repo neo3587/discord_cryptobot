@@ -1,9 +1,8 @@
 {
   "ticker": {
     "CryptoBridge": {
-      "api": "https://api.crypto-bridge.org/api/v1/ticker",
-      "market": "https://wallet.crypto-bridge.org/market/BRIDGE.BCARD_BRIDGE.BTC",
-      "filter": "BCARD_BTC"
+      "api": "https://api.crypto-bridge.org/api/v1/ticker/BCARD_BTC",
+      "market": "https://wallet.crypto-bridge.org/market/BRIDGE.BCARD_BRIDGE.BTC"
     },
     "Crex24": {
       "api": "https://api.crex24.com/v2/public/tickers?instrument=BCARD-BTC",

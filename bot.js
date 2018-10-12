@@ -6,6 +6,7 @@ const spawnSync = require("child_process").spawnSync;
 var conf = get_config();
 var client = new Discord.Client();
 
+// TODO: Escodex, Cryptopia, Stex, ???
 
 class ExchangeData {
     constructor(name, link) {
@@ -37,12 +38,7 @@ function get_ticker(exchange) {
         var json = JSON.parse(synced_request(conf.ticker[exchange].api)); 
         switch (exchange) {
             case "CryptoBridge":
-                for (coin of json) { // no filter option... shame on devs
-                    if (coin["id"] === conf.ticker.CryptoBridge.filter) {
-                        exdata.fillj(coin, "last", "volume", "bid", "ask", "percentChange");
-                        break;
-                    }
-                }
+                exdata.fillj(json, "last", "volume", "bid", "ask", "percentChange");
                 break;
             case "Crex24":
                 exdata.fillj(json[0], "last", "volumeInBtc", "bid", "ask", "percentChange");
@@ -63,7 +59,15 @@ function get_ticker(exchange) {
 }
 function get_config() {
     var str = fs.readFileSync("./config.json", "utf8"); // for some reason is adding a invalid character at the beggining that causes a throw
-    return JSON.parse(str.slice(str.indexOf("{")));
+    var json = JSON.parse(str.slice(str.indexOf("{")));
+    json.cmd = {
+        stats: json.requests.blockcount !== "" && json.requests.mncount !== "" && json.requests.supply !== "",
+        earnings: json.requests.blockcount !== "" && json.requests.mncount !== "",
+        balance: json.requests.balance !== "",
+        blockindex: json.requests.blockhash !== "" && json.requests.blockindex !== "",
+        blockhash: json.requests.blockhash !== ""
+    };
+    return json;
 }
 function get_stage(blk) {
     for (stage of conf.stages)
@@ -191,6 +195,7 @@ function response_msg(msg) {
         // Coin Info:
 
         case "stats": {
+            if (!conf.cmd.stats) break;
             Promise.all([
                 new Promise((resolve, reject) => resolve(bash_cmd(conf.requests.blockcount))),
                 new Promise((resolve, reject) => resolve(JSON.parse(bash_cmd(conf.requests.mncount))["enabled"])),
@@ -250,6 +255,7 @@ function response_msg(msg) {
             break;
         }
         case "earnings": { 
+            if (!conf.cmd.earnings) break;
             Promise.all([
                 new Promise((resolve, reject) => resolve(bash_cmd(conf.requests.blockcount))),
                 new Promise((resolve, reject) => resolve(JSON.parse(bash_cmd(conf.requests.mncount))["enabled"]))
@@ -297,7 +303,7 @@ function response_msg(msg) {
         // Explorer:
 
         case "balance": {
-            if (error_noparam(2, "You need to provide an address")) break;
+            if (!conf.cmd.balance || error_noparam(2, "You need to provide an address")) break;
             try {
                 json = JSON.parse(synced_request(conf.requests.balance + cmds[1]));
                 msg.channel.send({
@@ -344,12 +350,12 @@ function response_msg(msg) {
             break;
         }
         case "block-index": {
-            if (error_noparam(2, "You need to provide a block number")) break;
+            if (!conf.cmd.blockindex || error_noparam(2, "You need to provide a block number")) break;
             block_info_message(msg, bash_cmd(conf.requests.blockhash + " " + bash_cmd(conf.requests.blockindex + " " + cmds[1])));
             break;
         }
         case "block-hash": {
-            if (error_noparam(2, "You need to provide a block hash")) break;
+            if (!conf.cmd.blockhash || error_noparam(2, "You need to provide a block hash")) break;
             block_info_message(msg, bash_cmd(conf.requests.blockhash + " " + cmds[1]));
             break;
         }
@@ -357,6 +363,9 @@ function response_msg(msg) {
         // Other:
 
         case "help": {
+            const blocked_cmd = (cmd, str) => {
+                return !cmd ? "*blocked command*" : str;
+            };
             msg.channel.send({
                 embed: {
                     title: "**Available commands**",
@@ -370,11 +379,11 @@ function response_msg(msg) {
                         {
                             name: "Explorer:",
                             value:
-                                " - **" + conf.prefix + "stats** : get the current stats of the " + conf.coin + " blockchain\n" +
-                                " - **" + conf.prefix + "earnings** : get the expected " + conf.coin +" earnings per masternode to get an idea of how close you are to getting a lambo\n" +
-                                " - **" + conf.prefix + "balance <address>** : show the balance, sent and received of the given address\n" +
-                                " - **" + conf.prefix + "block-index <number>** : show the info of the block by its index\n" +
-                                " - **" + conf.prefix + "block-hash <hash>** : show the info of the block by its hash\n" 
+                                " - **" + conf.prefix + "stats** : " + blocked_cmd(conf.cmd.stats, "get the current stats of the " + conf.coin + " blockchain") + "\n" +
+                                " - **" + conf.prefix + "earnings** : " + blocked_cmd(conf.cmd.earnings, "get the expected " + conf.coin + " earnings per masternode to get an idea of how close you are to getting a lambo") + "\n" +
+                                " - **" + conf.prefix + "balance <address>** : " + blocked_cmd(conf.cmd.balance, "show the balance, sent and received of the given address") + "\n" +
+                                " - **" + conf.prefix + "block-index <number>** : " + blocked_cmd(conf.cmd.blockindex, "show the info of the block by its index") + "\n" +
+                                " - **" + conf.prefix + "block-hash <hash>** : " + blocked_cmd(conf.cmd.blockhash, "show the info of the block by its hash") + "\n" 
                         },
                         {
                             name: "Other:",
