@@ -6,7 +6,7 @@ const spawnSync = require("child_process").spawnSync;
 var conf = get_config();
 var client = new Discord.Client();
 
-// TODO: Escodex, Cryptopia, Stex, ???
+// TODO: CCEX, HitBTC, YoBit, ???
 
 class ExchangeData {
     constructor(name, link) {
@@ -22,20 +22,27 @@ class ExchangeData {
         this.fill(json[price], json[volume], json[ask], json[bid], json[change]);
     }
     fill(price, volume, ask, bid, change) {
-        this.price  = parseFloat(price).toFixed(8);
-        this.volume = parseFloat(volume).toFixed(8);
-        this.ask    = parseFloat(ask).toFixed(8);
-        this.bid    = parseFloat(bid).toFixed(8);
-        this.change = (parseFloat(change) >= 0.0 ? "+" : "") + parseFloat(change).toFixed(2) + "%";
+        this.price  = isNaN(price)  ? price  : parseFloat(price).toFixed(8);
+        this.volume = isNaN(volume) ? volume : parseFloat(volume).toFixed(8);
+        this.ask    = isNaN(ask)    ? ask    : parseFloat(ask).toFixed(8);
+        this.bid    = isNaN(bid)    ? bid    : parseFloat(bid).toFixed(8);
+        this.change = isNaN(change) ? change : (change >= 0.0 ? "+" : "") + parseFloat(change).toFixed(2) + "%";
     }
 }
 
 function get_ticker(exchange) {
 
     var exdata = new ExchangeData(exchange, conf.ticker[exchange].market);
+    const fake_query = () => {
+        return {
+            full: conf.ticker[exchange].api.substr(conf.ticker[exchange].api.lastIndexOf("?fake_query=") + "?fake_query=".length),
+            get left() { return this.full.substr(0, this.full.indexOf("_")); },
+            get right() { return this.full.substr(this.full.indexOf("_") + 1); }
+        };
+    };
 
     try {
-        var json = JSON.parse(synced_request(conf.ticker[exchange].api)); 
+        var data, json = JSON.parse(synced_request(conf.ticker[exchange].api)); 
         switch (exchange) {
             case "CryptoBridge":
                 exdata.fillj(json, "last", "volume", "bid", "ask", "percentChange");
@@ -49,6 +56,17 @@ function get_ticker(exchange) {
             case "Graviex":
                 exdata.fillj(json["ticker"], "last", "volbtc", "buy", "sell", "change");
                 break;
+            case "Escodex":
+                exdata.fillj(json.find(x => x.base === fake_query().right && x.quote === fake_query().left), "latest", "base_volume", "lowest_ask", "highest_bid", "percent_change");
+                break;
+            case "Cryptopia": 
+                exdata.fillj(json["Data"], "LastPrice", "BaseVolume", "AskPrice", "BidPrice", "Change");
+                break;
+            case "Stex":
+                data = json.find(x => x.market_name === fake_query().full);
+                exdata.fill(data.last, "Not Supported", data.ask, data.bid, data.last / data.lastDayAgo);
+                break;
+            //case "Injex": exdata.fillj(json[0], "last_price", "24hvol_btc", "top_bid", "top_ask", "change"); break; // added cause SNO got listed there, but it's seems like a scam, I'll enable if it becomes trusty
         }
     }
     catch (e) {
@@ -164,7 +182,7 @@ function response_msg(msg) {
             for (ticker of Object.keys(conf.ticker))
                 promises.push(new Promise((resolve, reject) => resolve(get_ticker(ticker))));
 
-            Promise.all(promises).then(values => {
+            Promise.all(promises).then(values => { // do on get_ticker for paralellization ?
                 var fields_ticker = [];
                 for (data of values) {
                     fields_ticker.push({
