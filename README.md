@@ -98,7 +98,12 @@ NOTE: The token on config.json is just an example, not the real one (for obvious
 - Crex24
 - CoinExchange
 - Graviex
+- Escodex
+- Cryptopia
+- Stex
 - (more soon)
+
+(guide of every exchange api link soon)
 
 # Additional
 
