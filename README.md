@@ -4,7 +4,7 @@ A discord bot originally made for BCARD, and reworked to work with SNO, it can b
 
 # How to install
 
-First, you can use this guide to crate the bot: http://uploaded.net/file/zrjbymwv
+First, you can use this guide to crate the bot: https://www.digitaltrends.com/gaming/how-to-make-a-discord-bot/
 
 The bot runs on Node.js, version 8.x or higher is recommended, it can be obtained here: https://nodejs.org/en/ 
 
