@@ -6,12 +6,14 @@ const spawnSync = require("child_process").spawnSync;
 var conf = get_config();
 var client = new Discord.Client();
 
-// TODO: CCEX, HitBTC, YoBit, ???
+/* TODO: 
+ *  - Add exchanges: C-CEX, HitBTC, YoBit, Bittrex, ???
+*/ 
 
 class ExchangeData {
-    constructor(name, link) {
+    constructor(name) {
         this.name = name;
-        this.link = link;
+        this.link = "";
         this.price = "Error";
         this.volume = "Error";
         this.ask = "Error";
@@ -22,51 +24,68 @@ class ExchangeData {
         this.fill(json[price], json[volume], json[ask], json[bid], json[change]);
     }
     fill(price, volume, ask, bid, change) {
-        this.price  = isNaN(price)  ? price  : parseFloat(price).toFixed(8);
-        this.volume = isNaN(volume) ? volume : parseFloat(volume).toFixed(8);
-        this.ask    = isNaN(ask)    ? ask    : parseFloat(ask).toFixed(8);
-        this.bid    = isNaN(bid)    ? bid    : parseFloat(bid).toFixed(8);
-        this.change = isNaN(change) ? change : (change >= 0.0 ? "+" : "") + parseFloat(change).toFixed(2) + "%";
+        this.price  = isNaN(price)  ? "Not Supported" : parseFloat(price).toFixed(8);
+        this.volume = isNaN(volume) ? "Not Supported" : parseFloat(volume).toFixed(8);
+        this.ask    = isNaN(ask)    ? "Not Supported" : parseFloat(ask).toFixed(8);
+        this.bid    = isNaN(bid)    ? "Not Supported" : parseFloat(bid).toFixed(8);
+        this.change = isNaN(change) ? "Not Supported" : (change >= 0.0 ? "+" : "") + parseFloat(change).toFixed(2) + "%";
     }
 }
 
 function get_ticker(exchange) {
 
-    var exdata = new ExchangeData(exchange, conf.ticker[exchange].market);
-    const fake_query = () => {
-        return {
-            full: conf.ticker[exchange].api.substr(conf.ticker[exchange].api.lastIndexOf("?fake_query=") + "?fake_query=".length),
-            get left() { return this.full.substr(0, this.full.indexOf("_")); },
-            get right() { return this.full.substr(this.full.indexOf("_") + 1); }
-        };
+    var exdata = new ExchangeData(exchange);
+    const rg_replace = (str, lowercase = false) => {
+        return str.replace("{COIN}", lowercase ? conf.coin.toLowerCase() : conf.coin.toUpperCase());
+    };
+    const js_request = (url, lowercase = false) => {
+        return JSON.parse(synced_request(rg_replace(url, lowercase)));
     };
 
     try {
-        var data, json = JSON.parse(synced_request(conf.ticker[exchange].api)); 
+        var tmp;
         switch (exchange) {
-            case "CryptoBridge":
-                exdata.fillj(json, "last", "volume", "bid", "ask", "percentChange");
+            case "CryptoBridge": {
+                exdata.fillj(js_request("https://api.crypto-bridge.org/api/v1/ticker/{COIN}_BTC"), "last", "volume", "bid", "ask", "percentChange");
+                exdata.link = rg_replace("https://wallet.crypto-bridge.org/market/BRIDGE.{COIN}_BRIDGE.BTC");
                 break;
-            case "Crex24":
-                exdata.fillj(json[0], "last", "volumeInBtc", "bid", "ask", "percentChange");
+            }
+            case "Crex24": {
+                exdata.fillj(js_request("https://api.crex24.com/v2/public/tickers?instrument={COIN}-BTC")[0], "last", "volumeInBtc", "bid", "ask", "percentChange");
+                exdata.link = rg_replace("https://crex24.com/exchange/{COIN}-BTC");
                 break;
-            case "CoinExchange":
-                exdata.fillj(json["result"], "LastPrice", "BTCVolume", "BidPrice", "AskPrice", "Change");
+            }
+            case "CoinExchange": {
+                exdata.fillj(js_request("https://www.coinexchange.io/api/v1/getmarketsummary?market_id=" + conf.special_ticker.CoinExchange)["result"], "LastPrice", "BTCVolume", "BidPrice", "AskPrice", "Change");
+                exdata.link = rg_replace("https://www.coinexchange.io/market/{COIN}/BTC");
                 break;
-            case "Graviex":
-                exdata.fillj(json["ticker"], "last", "volbtc", "buy", "sell", "change");
+            }
+            case "Graviex": {
+                exdata.fillj(js_request("https://graviex.net:443//api/v2/tickers/{COIN}btc.json", true)["ticker"], "last", "volbtc", "buy", "sell", "change");
+                exdata.link = rg_replace("https://graviex.net/markets/{COIN}btc", true);
                 break;
-            case "Escodex":
-                exdata.fillj(json.find(x => x.base === fake_query().right && x.quote === fake_query().left), "latest", "base_volume", "lowest_ask", "highest_bid", "percent_change");
+            }
+            case "Escodex": {
+                exdata.fillj(js_request("http://labs.escodex.com/api/ticker").find(x => x.base === "BTC" && x.quote === conf.coin.toUpperCase()), "latest", "base_volume", "lowest_ask", "highest_bid", "percent_change");
+                exdata.link = rg_replace("https://wallet.escodex.com/market/ESCODEX.{COIN}_ESCODEX.BTC");
                 break;
-            case "Cryptopia": 
-                exdata.fillj(json["Data"], "LastPrice", "BaseVolume", "AskPrice", "BidPrice", "Change");
+            }
+            case "Cryptopia": {
+                exdata.fillj(js_request("https://www.cryptopia.co.nz/api/GetMarket/{COIN}_BTC")["Data"], "LastPrice", "BaseVolume", "AskPrice", "BidPrice", "Change");
+                exdata.link = rg_replace("https://www.cryptopia.co.nz/Exchange/?market={COIN}_BTC");
                 break;
-            case "Stex":
-                data = json.find(x => x.market_name === fake_query().full);
-                exdata.fill(data.last, "Not Supported", data.ask, data.bid, data.last / data.lastDayAgo);
+            }
+            case "Stex": {
+                tmp = js_request("https://app.stex.com/api2/ticker").find(x => x.market_name === rg_replace("{COIN}_BTC"));
+                exdata.fill(tmp["last"], (tmp["last"] + tmp["lastDayAgo"]) / 2 * tmp["volume"], tmp["ask"], tmp["bid"], tmp["last"] / tmp["lastDayAgo"]); // volume is not 100% accurate
+                exdata.link = rg_replace("https://app.stex.com/en/basic-trade/BTC?currency2={COIN}");
                 break;
-            //case "Injex": exdata.fillj(json[0], "last_price", "24hvol_btc", "top_bid", "top_ask", "change"); break; // added cause SNO got listed there, but it's seems like a scam, I'll enable if it becomes trusty
+            }
+            //case "Injex": { // added cause SNO got listed there, but it's seems like a scam, I'll enable if it becomes trusty
+                //exdata.fillj(js_request("https://api.injex.io/v1/market/stats/{COIN}/BTC")[0], "last_price", "24hvol_btc", "top_bid", "top_ask", "change");
+                //exdata.link = rg_replace("https://ex.injex.io/trade/{COIN}/BTC");
+                //break; 
+            //}
         }
     }
     catch (e) {
@@ -100,7 +119,7 @@ function synced_request(url) {
     return req.responseText;
 }
 function bash_cmd(cmd) {
-    return spawnSync("sh", ["-c", cmd]).stdout.toString();
+    return (process.platform === "win32" ? spawnSync("cmd.exe", ["/S", "/C", cmd]) : spawnSync("sh", ["-c", cmd])).stdout.toString();
 }
 function restart_bot() {
     for (i = 5; i > 0; i--) {
@@ -179,7 +198,7 @@ function response_msg(msg) {
         case "price": {
 
             var promises = [];
-            for (ticker of Object.keys(conf.ticker))
+            for (ticker of conf.ticker)
                 promises.push(new Promise((resolve, reject) => resolve(get_ticker(ticker))));
 
             Promise.all(promises).then(values => { // do on get_ticker for paralellization ?
@@ -217,7 +236,7 @@ function response_msg(msg) {
             Promise.all([
                 new Promise((resolve, reject) => resolve(bash_cmd(conf.requests.blockcount))),
                 new Promise((resolve, reject) => resolve(JSON.parse(bash_cmd(conf.requests.mncount))["enabled"])),
-                new Promise((resolve, reject) => resolve(synced_request(conf.requests.supply)))
+                new Promise((resolve, reject) => resolve(bash_cmd(conf.requests.supply)))
             ]).then(([blockcount, mncount, supply]) => {
                 stage = get_stage(blockcount);
                 msg.channel.send({
@@ -323,7 +342,7 @@ function response_msg(msg) {
         case "balance": {
             if (!conf.cmd.balance || error_noparam(2, "You need to provide an address")) break;
             try {
-                json = JSON.parse(synced_request(conf.requests.balance + cmds[1]));
+                json = JSON.parse(bash_cmd(conf.requests.balance + cmds[1]));
                 msg.channel.send({
                     embed: {
                         title: "Balance",

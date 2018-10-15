@@ -1,18 +1,12 @@
 {
-  "ticker": {
-    "CryptoBridge": {
-      "api": "https://api.crypto-bridge.org/api/v1/ticker/SNO_BTC",
-      "market": "https://wallet.crypto-bridge.org/market/BRIDGE.SNO_BRIDGE.BTC"
-    },
-    "Crex24": {
-      "api": "https://api.crex24.com/v2/public/tickers?instrument=SNO-BTC",
-      "market": "https://crex24.com/exchange/SNO-BTC"
-    },
-    "CoinExchange": {
-      "api": "https://www.coinexchange.io/api/v1/getmarketsummary?market_id=984",
-      "market": "https://www.coinexchange.io/market/SNO/BTC"
-    }
+  "special_ticker": {
+    "CoinExchange": "984"
   },
+  "ticker": [
+    "CryptoBridge",
+    "Crex24",
+    "CoinExchange"
+  ],
   "color": {
     "prices": 3447003,
     "coininfo": 888688,
@@ -84,8 +78,8 @@
   "requests": {
     "blockcount": "savenode-cli getblockcount",
     "mncount": "savenode-cli masternode count",
-    "supply": "https://sno.ccore.online/ext/getmoneysupply",
-    "balance": "https://sno.ccore.online/ext/getaddress/",
+    "supply": "curl https://sno.ccore.online/ext/getmoneysupply",
+    "balance": "curl https://sno.ccore.online/ext/getaddress/",
     "blockindex": "savenode-cli getblockhash",
     "blockhash": "savenode-cli getblock"
   },
