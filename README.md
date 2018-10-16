@@ -8,7 +8,7 @@ First, you can use this guide to crate the bot: https://www.digitaltrends.com/ga
 
 The bot runs on Node.js, version 8.x or higher is recommended, it can be obtained here: https://nodejs.org/en/ 
 
-The bot can run on any machine, but the commands **!stats**, **!earnings**, **!block-index** and **!block-hash** will only work if there's a wallet that accepts RPC commands (per example the typical masternode on a Linux machine).
+The bot can run on any machine, but the commands **!stats**, **!earnings**, **!block-index** and **!block-hash** will only work if there's a wallet that accepts RPC commands (per example the typical masternode on a Linux machine) or you make your way with urls or customized programs.
 In case of using a Linux machine for running the bot, you can install Node.js with these 2 commands:
 ```
 curl -sL https://deb.nodesource.com/setup_8.x | sudo -E bash -
@@ -78,7 +78,24 @@ You'll have to modify the "config.json" file to make it fit with your cryptocurr
     }
 ]
 ```
-- **requests:** The bash commands and urls used to get the data for **!stats**, **!earnings**, **!balance**, **!block-index** and **!block-hash**. Leaving a empty string will block the bot commands that makes use of the data.
+- **requests:** The bash commands and/or urls used to get the data for **!stats**, **!earnings**, **!balance**, **!block-index** and **!block-hash**. Leaving a empty string will block the bot commands that makes use of the data. It's expected to use RPC commands and explorer urls, but you can customize them to retrieve the data from other sources. Example:
+```
+"requests": {
+    "blockcount": "mywalletname-cli getblockcount",    // change for: "curl http://mycoinexplorer.com/api/getblockcount" 
+    "mncount":    "mywalletname-cli masternode count", // change for: "customprogramMNcount.exe" 
+    "supply":     "curl http://mycoinexplorer.com/ext/getmoneysupply", // change for: customprogram2 supply""
+    "balance":    "curl http://mycoinexplorer.com/ext/getaddress/",    // etc...
+    "blockindex": "mywalletname-cli getblockhash", 
+    "blockhash":  "mywalletname-cli getblock"
+}
+Important note if you customize the requests: 
+    - "blockcount" must return a string convertible into a number.
+    - "mncount" must return a json type string with a number or string in a attribute called "enabled".
+    - "supply" must return a string convertible into a number.
+    - "balance" expects to receive a string (the address) and must return a json type string with a number or string in three attributes called "sent", "received" and "balance".
+    - "blockindex": expects to receive a string convertible into a number and must return a string that indicates the block hash of the given block number.
+    - "blockhash": expects to receive a string (the hash) and must return a json type string with the attributes "height": (block number), "hash": (block hash), "confirmations": (number), "size": (size of the block), "previousblockhash": (last block hash), "nextblockhash": (next block hash) and "tx": [ (list of the block transactions) ].
+```
 - **sourcecode:** You don't need to touch this, it's just in case I change the repo in the future.
 - **channel:** The id of the channel where the bot will read and reply the commands.
 - **prefix:** The initial character for the commands.
