@@ -114,6 +114,10 @@ NOTE: The token on config.json is just an example, not the real one (for obvious
 - Escodex
 - Cryptopia
 - Stex
+- C-CEX
+- HitBTC
+- YoBit
+- Bittrex
 - (more soon)
 
 # Additional
