@@ -96,6 +96,7 @@ Important note if you customize the requests:
     - "blockindex": expects to receive a string convertible into a number and must return a string that indicates the block hash of the given block number.
     - "blockhash": expects to receive a string (the hash) and must return a json type string with the attributes "height": (block number), "hash": (block hash), "confirmations": (number), "size": (size of the block), "previousblockhash": (last block hash), "nextblockhash": (next block hash) and "tx": [ (list of the block transactions) ].
 </pre>
+- **hidenotsupported**: Hide the ticker values from exchanges APIs that doesn't support that feature instead of showing "Not Supported".
 - **sourcecode:** You don't need to touch this, it's just in case I change the repo in the future.
 - **channel:** The id of the channel where the bot will read and reply the commands.
 - **prefix:** The initial character for the commands.

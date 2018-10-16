@@ -7,7 +7,6 @@ var conf = get_config();
 var client = new Discord.Client();
 
 /* TODO: 
- *  - fix bad placing on !price with a row of 2 tickers
  *  - moaaar exchanges
 */ 
 
@@ -25,11 +24,11 @@ class ExchangeData {
         this.fill(json[price], json[volume], json[ask], json[bid], json[change]);
     }
     fill(price, volume, ask, bid, change) {
-        this.price  = isNaN(price)  ? "Not Supported" : parseFloat(price).toFixed(8);
-        this.volume = isNaN(volume) ? "Not Supported" : parseFloat(volume).toFixed(8);
-        this.ask    = isNaN(ask)    ? "Not Supported" : parseFloat(ask).toFixed(8);
-        this.bid    = isNaN(bid)    ? "Not Supported" : parseFloat(bid).toFixed(8);
-        this.change = isNaN(change) ? "Not Supported" : (change >= 0.0 ? "+" : "") + parseFloat(change).toFixed(2) + "%";
+        this.price  = isNaN(price)  ? undefined : parseFloat(price).toFixed(8);
+        this.volume = isNaN(volume) ? undefined : parseFloat(volume).toFixed(8);
+        this.ask    = isNaN(ask)    ? undefined : parseFloat(ask).toFixed(8);
+        this.bid    = isNaN(bid)    ? undefined : parseFloat(bid).toFixed(8);
+        this.change = isNaN(change) ? undefined : (change >= 0.0 ? "+" : "") + parseFloat(change).toFixed(2) + "%";
     }
 }
 
@@ -104,11 +103,6 @@ function get_ticker(exchange) {
                 exdata.link = rg_replace("https://www.bittrex.com/Market/Index?MarketName=BTC-{COIN}");
                 break;
             }
-            //case "Injex": { // added cause SNO got listed there, but it's seems like a scam, I'll enable if it becomes trusty
-            //    exdata.fillj(js_request("https://api.injex.io/v1/market/stats/{COIN}/BTC")[0], "last_price", "24hvol_btc", "top_bid", "top_ask", "change");
-            //    exdata.link = rg_replace("https://ex.injex.io/trade/{COIN}/BTC");
-            //    break; 
-            //}
         }
     }
     catch (e) {
@@ -225,28 +219,34 @@ function response_msg(msg) {
                 promises.push(new Promise((resolve, reject) => resolve(get_ticker(ticker))));
 
             Promise.all(promises).then(values => { 
-                var fields_ticker = [];
-                for (data of values) {
-                    fields_ticker.push({
-                        name: data.name,
-                        value: "**| Price** : " + data.price + "\n" +
-                            "**| Vol** : " + data.volume + "\n" +
-                            "**| Buy** : " + data.ask + "\n" +
-                            "**| Sell** : " + data.bid + "\n" +
-                            "**| Chg** : " + data.change + "\n" +
-                            "[Link](" + data.link + ")",
-                        inline: true
-                    });
-                }
 
-                msg.channel.send({
-                    embed: {
-                        title: "**Price Ticker**",
-                        color: conf.color.prices,
-                        fields: fields_ticker,
-                        timestamp: new Date()
-                    }
-                });
+                const hide_undef = (str, val) => {
+                    if (val === undefined) 
+                        return conf.hidenotsupported ? "\n" : str + "Not Supported" + "\n";
+                    return str + val + "\n";
+                };
+
+                var embed = new Discord.RichEmbed();
+                embed.title = "**Price Ticker**";
+                embed.color = conf.color.prices;
+                embed.timestamp = new Date();
+
+                for (data of values) {
+                    embed.addField(
+                        data.name,
+                        hide_undef("**| Price** : ", data.price)  +
+                        hide_undef("**| Vol** : ",   data.volume) +
+                        hide_undef("**| Buy** : ",   data.ask)    +
+                        hide_undef("**| Sell** : ",  data.bid)    +
+                        hide_undef("**| Chg** : ",   data.change) +
+                        "[Link](" + data.link   + ")",
+                        true
+                    );
+                }
+                if (embed.fields.length % 3 === 2) // fix bad placing if a row have 2 tickers
+                    embed.addBlankField(true);
+
+                msg.channel.send(embed);
             });
 
             break;
