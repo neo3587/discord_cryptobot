@@ -7,7 +7,8 @@ var conf = get_config();
 var client = new Discord.Client();
 
 /* TODO: 
- *  - Add exchanges: C-CEX, HitBTC, YoBit, Bittrex, ???
+ *  - fix bad placing on !price with a row of 2 tickers
+ *  - moaaar exchanges
 */ 
 
 class ExchangeData {
@@ -77,14 +78,36 @@ function get_ticker(exchange) {
             }
             case "Stex": {
                 tmp = js_request("https://app.stex.com/api2/ticker").find(x => x.market_name === rg_replace("{COIN}_BTC"));
-                exdata.fill(tmp["last"], (tmp["last"] + tmp["lastDayAgo"]) / 2 * tmp["volume"], tmp["ask"], tmp["bid"], tmp["last"] / tmp["lastDayAgo"]); // volume is not 100% accurate
+                exdata.fill(tmp["last"], (tmp["last"] + tmp["lastDayAgo"]) / 2 * tmp["volume"], tmp["ask"], tmp["bid"], tmp["last"] / tmp["lastDayAgo"]); // volume and change not 100% accurate
                 exdata.link = rg_replace("https://app.stex.com/en/basic-trade/BTC?currency2={COIN}");
                 break;
             }
+            case "C-CEX": {
+                tmp = js_request("https://c-cex.com/t/{COIN}-btc.json", true)["ticker"];
+                exdata.fill(tmp["lastprice"], js_request("https://c-cex.com/t/volume_btc.json")["ticker"][conf.coin.toLowerCase()]["vol"], tmp["buy"], tmp["sell"], undefined);
+                exdata.link = rg_replace("https://c-cex.com/?p={COIN}-btc", true);
+                break;
+            }
+            case "HitBTC": {
+                exdata.fillj(js_request("https://api.hitbtc.com/api/2/public/ticker/{COIN}BTC"), "last", "volumeQuote", "ask", "bid", ""); // change not supported
+                exdata.link = rg_replace("https://hitbtc.com/{COIN}-to-BTC");
+                break;
+            }
+            case "YoBit": {
+                exdata.fillj(js_request("https://yobit.net/api/2/{COIN}_btc/ticker", true)["ticker"], "last", "vol", "buy", "sell", ""); // change not supported
+                exdata.link = rg_replace("https://yobit.net/en/trade/{COIN}/BTC");
+                break;
+            }
+            case "Bittrex": {
+                tmp = js_request("https://bittrex.com/api/v1.1/public/getmarketsummary?market=btc-{COIN}", true)["result"][0];
+                exdata.fill(tmp["Last"], tmp["BaseVolume"], tmp["Bid"], tmp["Ask"], tmp["Last"] / tmp["PrevDay"]); // change not 100% accurate
+                exdata.link = rg_replace("https://www.bittrex.com/Market/Index?MarketName=BTC-{COIN}");
+                break;
+            }
             //case "Injex": { // added cause SNO got listed there, but it's seems like a scam, I'll enable if it becomes trusty
-                //exdata.fillj(js_request("https://api.injex.io/v1/market/stats/{COIN}/BTC")[0], "last_price", "24hvol_btc", "top_bid", "top_ask", "change");
-                //exdata.link = rg_replace("https://ex.injex.io/trade/{COIN}/BTC");
-                //break; 
+            //    exdata.fillj(js_request("https://api.injex.io/v1/market/stats/{COIN}/BTC")[0], "last_price", "24hvol_btc", "top_bid", "top_ask", "change");
+            //    exdata.link = rg_replace("https://ex.injex.io/trade/{COIN}/BTC");
+            //    break; 
             //}
         }
     }
@@ -201,7 +224,7 @@ function response_msg(msg) {
             for (ticker of conf.ticker)
                 promises.push(new Promise((resolve, reject) => resolve(get_ticker(ticker))));
 
-            Promise.all(promises).then(values => { // do on get_ticker for paralellization ?
+            Promise.all(promises).then(values => { 
                 var fields_ticker = [];
                 for (data of values) {
                     fields_ticker.push({
