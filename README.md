@@ -85,8 +85,8 @@ You'll have to modify the "config.json" file to make it fit with your cryptocurr
     "mncount":    "mywalletname-cli masternode count", // change for: "customprogramMNcount.exe" 
     "supply":     "curl http://mycoinexplorer.com/ext/getmoneysupply", // change for: "customprogram2 supply"
     "balance":    "curl http://mycoinexplorer.com/ext/getaddress/",    // change for: "" and <b>!balance</b> will be blocked
-    "blockindex": "mywalletname-cli getblockhash",     // etc...
-    "blockhash":  "mywalletname-cli getblock
+    "blockindex": "mywalletname-cli getblockhash ",    // <b>!!!</b> trailing space added on purpose or won't work, remove it only if using a url, same for "balance" and "blockhash"
+    "blockhash":  "mywalletname-cli getblock "         // etc...
 }
 Important note if you customize the requests: 
     - "blockcount" must return a string convertible into a number.
@@ -95,6 +95,7 @@ Important note if you customize the requests:
     - "balance" expects to receive a string (the address) and must return a json type string with a number or string in three attributes called "sent", "received" and "balance".
     - "blockindex": expects to receive a string convertible into a number and must return a string that indicates the block hash of the given block number.
     - "blockhash": expects to receive a string (the hash) and must return a json type string with the attributes "height": (block number), "hash": (block hash), "confirmations": (number), "size": (size of the block), "previousblockhash": (last block hash), "nextblockhash": (next block hash) and "tx": [ (list of the block transactions) ].
+
 </pre>
 - **hidenotsupported**: Hide the ticker values from exchanges APIs that doesn't support that feature instead of showing "Not Supported".
 - **sourcecode:** You don't need to touch this, it's just in case I change the repo in the future.
@@ -106,6 +107,16 @@ Important note if you customize the requests:
 
 NOTE: The token on config.json is just an example, not the real one (for obvious reasons), use yours to work with your discord server.
 
+# Bot debug
+
+Run the bot by adding debug to check if the configured tickers and requests works:
+```
+node bot.js debug <valid_address_to_check_balance> <valid_hash_to_check_blockhash>
+```
+Per example with the SNO profile: 
+```
+node bot.js debug SZ4pQpuqq11EG7dw6qjgqSs5tGq3iTw2uZ 8cd878d1646c66e46de6c65bfe54404474d4e9f5364062b0fc08ffaf2d82309e
+```
 # Currently supported exchanges
 
 - CryptoBridge
