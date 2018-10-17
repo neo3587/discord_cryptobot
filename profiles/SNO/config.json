@@ -80,8 +80,8 @@
     "mncount": "savenode-cli masternode count",
     "supply": "curl https://sno.ccore.online/ext/getmoneysupply",
     "balance": "curl https://sno.ccore.online/ext/getaddress/",
-    "blockindex": "savenode-cli getblockhash",
-    "blockhash": "savenode-cli getblock"
+    "blockindex": "savenode-cli getblockhash ",
+    "blockhash": "savenode-cli getblock "
   },
   "hidenotsupported": false,
   "sourcecode": "https://github.com/neo3587/discord_cryptobot",

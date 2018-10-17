@@ -67,8 +67,8 @@
     "mncount": "CARDbuyers-cli masternode count",
     "supply": "curl http://explorer.cardbuyers.cc:3001/ext/getmoneysupply",
     "balance": "curl http://explorer.cardbuyers.cc:3001/ext/getaddress/",
-    "blockindex": "CARDbuyers-cli getblockhash",
-    "blockhash": "CARDbuyers-cli getblock"
+    "blockindex": "CARDbuyers-cli getblockhash ",
+    "blockhash": "CARDbuyers-cli getblock "
   },
   "hidenotsupported": false,
   "sourcecode": "https://github.com/neo3587/discord_cryptobot",

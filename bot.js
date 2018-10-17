@@ -106,7 +106,7 @@ function get_ticker(exchange) {
         }
     }
     catch (e) {
-        console.log("Error retrieving " + exchange + " data: " + e);
+        //console.log("Error retrieving " + exchange + " data: " + e);
     }
 
     return exdata;
@@ -411,12 +411,12 @@ function response_msg(msg) {
         }
         case "block-index": {
             if (!conf.cmd.blockindex || error_noparam(2, "You need to provide a block number")) break;
-            block_info_message(msg, bash_cmd(conf.requests.blockhash + " " + bash_cmd(conf.requests.blockindex + " " + cmds[1])));
+            block_info_message(msg, bash_cmd(conf.requests.blockhash + bash_cmd(conf.requests.blockindex + cmds[1])));
             break;
         }
         case "block-hash": {
             if (!conf.cmd.blockhash || error_noparam(2, "You need to provide a block hash")) break;
-            block_info_message(msg, bash_cmd(conf.requests.blockhash + " " + cmds[1]));
+            block_info_message(msg, bash_cmd(conf.requests.blockhash + cmds[1]));
             break;
         }
 
@@ -544,6 +544,75 @@ function response_msg(msg) {
 
 }
 
+function debug_bot() {
+
+    const exch_check = (val) => {
+        return "[" + (val === undefined ? "-" : val === "Error" ? "X" : String.fromCharCode(8730)) + "]";
+    };
+    const req_check = (req, fn, param = "") => {
+        console.log(" - " + req + ": " + (conf.requests[req] === "" ? "Disabled" : fn(bash_cmd(conf.requests[req] + param))));
+    };
+    const req_check_json = (req, fn, param = "") => {
+        if (conf.requests[req] === "") {
+            console.log(" - " + req + ": Disabled");
+        }
+        else {
+            try {
+                var json = JSON.parse(bash_cmd(conf.requests[req] + param));
+                console.log(" - " + req + ":");
+                fn(json);
+            }
+            catch (e) {
+                console.log(" - " + req + ": Bad data format, expected JSON");
+            }
+        }
+    };
+
+    if (process.argv.length < 3 || process.argv[2].toLowerCase() !== "debug")
+        return;
+
+    console.log("\nChecking bot...");
+    console.log("  balance value: "   + (process.argv.length >= 3 ? process.argv[3] : "(none)"));
+    console.log("  blockhash value: " + (process.argv.length >= 4 ? process.argv[4] : "(none)"));
+
+    console.log("\nTickers: [price][volume][ask][bid][change] (" + String.fromCharCode(8730) + " == OK / X == ERR / - == Not supported) :");
+    for (exch of conf.ticker) {
+        var exd = get_ticker(exch);
+        console.log(" - " + exch + ": " + exch_check(exd.price) + exch_check(exd.volume) + exch_check(exd.ask) + exch_check(exd.bid) + exch_check(exd.change));
+    }
+
+    console.log("\nRequests:");
+    
+    req_check("blockcount", x => /^[0-9\n]+$/.test(x)  ? "OK" : "Bad data format, expected only numbers");
+    req_check_json("mncount", x => {
+        console.log("     > enabled: " + (x["enabled"] === undefined ? "Missing attribute" : /^[0-9\n]+$/.test(x["enabled"]) ? "OK" : "Bad data format, expected only numbers"));
+    });
+    req_check("supply", x => /^[0-9.\n]+$/.test(x) ? "OK" : "Bad data format, expected only numbers and/or a dot");
+    req_check_json("balance",
+        x => {
+            console.log("     > sent: "     + (x["sent"]     === undefined ? "Missing attribute" : /^[0-9.\n]+$/.test(x["sent"])     ? "OK" : "Bad data format, expected only numbers and/or a dot"));
+            console.log("     > received: " + (x["received"] === undefined ? "Missing attribute" : /^[0-9.\n]+$/.test(x["received"]) ? "OK" : "Bad data format, expected only numbers and/or a dot"));
+            console.log("     > balance: "  + (x["balance"]  === undefined ? "Missing attribute" : /^[0-9.\n]+$/.test(x["balance"])  ? "OK" : "Bad data format, expected only numbers and/or a dot"));
+        },
+        process.argv[3]
+    ); 
+    req_check("blockindex", x => /^[A-Za-z0-9\n]+$/.test(x) ? "OK" : "Bad data format, expected only letters and numbers", "1");
+    req_check_json("blockhash",
+        x => {
+            console.log("     > height: "            + (x["height"]            === undefined ? "Missing attribute" : /^[0-9\n]+$/.test(x["height"])                   ? "OK" : "Bad data format, expected only numbers"));
+            console.log("     > hash: "              + (x["hash"]              === undefined ? "Missing attribute" : /^[A-Za-z0-9\n]+$/.test(x["hash"])               ? "OK" : "Bad data format, expected only numbers and letters"));
+            console.log("     > confirmations: "     + (x["confirmations"]     === undefined ? "Missing attribute" : /^[0-9\n]+$/.test(x["confirmations"])            ? "OK" : "Bad data format, expected only numbers"));
+            console.log("     > size: "              + (x["size"]              === undefined ? "Missing attribute" : /^[0-9\n]+$/.test(x["size"])                     ? "OK" : "Bad data format, expected only numbers"));
+            console.log("     > previousblockhash: " + (x["previousblockhash"] === undefined ? "Missing attribute" : /^[A-Za-z0-9\n]+$/.test(x["previousblockhash"])  ? "OK" : "Bad data format, expected only numbers and letters"));
+            console.log("     > nextblockhash: "     + (x["nextblockhash"]     === undefined ? "Missing attribute" : /^[A-Za-z0-9\n]+$/.test(x["nextblockhash"])      ? "OK" : "Bad data format, expected only numbers and letters"));
+            console.log("     > tx: "                + (x["tx"]                === undefined ? "Missing attribute" : typeof x["tx"][Symbol.iterator] === "function" ? "OK" : "Bad data format, expected a list"));
+        },
+        process.argv[4]
+    );
+    console.log("\nIMPORTANT NOTE: If you're using explorer urls, and the explorer doesn't allow too much consecutives API calls, then you should whitelist the bot IP, otherwise you may expect sometimes a error on some commands, even in this debug mode.\n");
+    process.exit();
+}
+
 process.on("uncaughtException", err => {
     console.log("Global exception caught: " + err);
     restart_bot();
@@ -553,6 +622,8 @@ process.on("unhandledRejection", err => {
     restart_bot();
 });
 
+debug_bot();
 client.on("message", response_msg);
 client.login(conf.token).then(() => console.log("Bot ready!"));
+
 
