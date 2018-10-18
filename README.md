@@ -90,7 +90,7 @@ You'll have to modify the "config.json" file to make it fit with your cryptocurr
 }
 Important note if you customize the requests: 
     - "blockcount" must return a string convertible into a number.
-    - "mncount" must return a string convertible into a number (some wallets returns a json, you can use "mywalletname-cli masternode count | jq .attributename" on the request string to give it the number, same works for urls, get jq here: https://stedolan.github.io/jq/.
+    - "mncount" must return a string convertible into a number (some wallets returns a json, you can use "mywalletname-cli masternode count | jq .attributename" on the request string to give it the number, same works for urls, get jq here: <a href= "https://stedolan.github.io/jq/">https://stedolan.github.io/jq/</a>).
     - "supply" must return a string convertible into a number.
     - "balance" expects to receive a string (the address) and must return a json type string with a number or string in three attributes called "sent", "received" and "balance".
     - "blockindex": expects to receive a string convertible into a number and must return a string that indicates the block hash of the given block number.
