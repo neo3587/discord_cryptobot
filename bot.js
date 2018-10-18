@@ -7,9 +7,11 @@ var conf = get_config();
 var client = new Discord.Client();
 
 /* TODO: 
- *  - find a way to not force JSON types on mncount and balance (this one will remove sent and received)
+ *  - Add a way to run on background
+ *  - Add POW on stages, remove POS/POW if undefined
  *  - COINEX, Bitexbay, Aiodex, Binance, moaaar exchanges
 */ 
+
 
 class ExchangeData {
     constructor(name) {
@@ -255,7 +257,7 @@ function response_msg(msg) {
                         hide_undef("**| Buy** : ",   data.buy)    +
                         hide_undef("**| Sell** : ",  data.sell)    +
                         hide_undef("**| Chg** : ",   data.change) +
-                        "[Link](" + data.link   + ")",
+                        "[Link](" + data.link + ")",
                         true
                     );
                 }
@@ -274,7 +276,7 @@ function response_msg(msg) {
             if (!conf.cmd.stats) break;
             Promise.all([
                 new Promise((resolve, reject) => resolve(bash_cmd(conf.requests.blockcount))),
-                new Promise((resolve, reject) => resolve(JSON.parse(bash_cmd(conf.requests.mncount))["enabled"])),
+                new Promise((resolve, reject) => resolve(bash_cmd(conf.requests.mncount))),
                 new Promise((resolve, reject) => resolve(bash_cmd(conf.requests.supply)))
             ]).then(([blockcount, mncount, supply]) => {
                 stage = get_stage(blockcount);
@@ -320,7 +322,7 @@ function response_msg(msg) {
                             },
                             {
                                 name: "Avg. MN Reward",
-                                value: parseInt(mncount / 1440) + "d " + parseInt(mncount / 60 % 24) + "h " + mncount % 60 + "m",
+                                value: parseInt(mncount / (86400 / conf.blocktime)) + "d " + parseInt(mncount / (3600 / conf.blocktime)) + "h " + parseInt(mncount / (360 / conf.blocktime)) + "m",
                                 inline: true
                             }
                         ],
@@ -334,7 +336,7 @@ function response_msg(msg) {
             if (!conf.cmd.earnings) break;
             Promise.all([
                 new Promise((resolve, reject) => resolve(bash_cmd(conf.requests.blockcount))),
-                new Promise((resolve, reject) => resolve(JSON.parse(bash_cmd(conf.requests.mncount))["enabled"]))
+                new Promise((resolve, reject) => resolve(bash_cmd(conf.requests.mncount)))
             ]).then(([blockcount, mncount]) => {
                 stage = get_stage(blockcount);
                 var coinday = 86400 / conf.blocktime / mncount * stage.mn;
@@ -599,32 +601,24 @@ function debug_bot() {
 
     console.log("\nRequests:");
     
-    req_check("blockcount", x => /^[0-9\n]+$/.test(x)  ? "OK" : "Bad data format, expected only numbers");
-    req_check_json("mncount", x => {
-        console.log("     > enabled: " + (x["enabled"] === undefined ? "Missing attribute" : /^[0-9\n]+$/.test(x["enabled"]) ? "OK" : "Bad data format, expected only numbers"));
-    });
+    req_check("blockcount", x => /^[0-9\n]+$/.test(x) ? "OK" : "Bad data format, expected only numbers");
+    req_check("mncount", x => /^[0-9\n]+$/.test(x) ? "OK" : "Bad data format, expected only numbers");
     req_check("supply", x => /^[0-9.\n]+$/.test(x) ? "OK" : "Bad data format, expected only numbers and/or a dot");
-    req_check_json("balance",
-        x => {
-            console.log("     > sent: "     + (x["sent"]     === undefined ? "Missing attribute" : /^[0-9.\n]+$/.test(x["sent"])     ? "OK" : "Bad data format, expected only numbers and/or a dot"));
-            console.log("     > received: " + (x["received"] === undefined ? "Missing attribute" : /^[0-9.\n]+$/.test(x["received"]) ? "OK" : "Bad data format, expected only numbers and/or a dot"));
-            console.log("     > balance: "  + (x["balance"]  === undefined ? "Missing attribute" : /^[0-9.\n]+$/.test(x["balance"])  ? "OK" : "Bad data format, expected only numbers and/or a dot"));
-        },
-        process.argv[3]
-    ); 
+    req_check_json("balance", x => {
+        console.log("     > sent: " + (x["sent"] === undefined ? "Missing attribute" : /^[0-9.\n]+$/.test(x["sent"]) ? "OK" : "Bad data format, expected only numbers and/or a dot"));
+        console.log("     > received: " + (x["received"] === undefined ? "Missing attribute" : /^[0-9.\n]+$/.test(x["received"]) ? "OK" : "Bad data format, expected only numbers and/or a dot"));
+        console.log("     > balance: " + (x["balance"] === undefined ? "Missing attribute" : /^[0-9.\n]+$/.test(x["balance"]) ? "OK" : "Bad data format, expected only numbers and/or a dot"));
+    }, process.argv[3]);
     req_check("blockindex", x => /^[A-Za-z0-9\n]+$/.test(x) ? "OK" : "Bad data format, expected only letters and numbers", "1");
-    req_check_json("blockhash",
-        x => {
+    req_check_json("blockhash", x => {
             console.log("     > height: "            + (x["height"]            === undefined ? "Missing attribute" : /^[0-9\n]+$/.test(x["height"])                   ? "OK" : "Bad data format, expected only numbers"));
             console.log("     > hash: "              + (x["hash"]              === undefined ? "Missing attribute" : /^[A-Za-z0-9\n]+$/.test(x["hash"])               ? "OK" : "Bad data format, expected only numbers and letters"));
             console.log("     > confirmations: "     + (x["confirmations"]     === undefined ? "Missing attribute" : /^[0-9\n]+$/.test(x["confirmations"])            ? "OK" : "Bad data format, expected only numbers"));
             console.log("     > size: "              + (x["size"]              === undefined ? "Missing attribute" : /^[0-9\n]+$/.test(x["size"])                     ? "OK" : "Bad data format, expected only numbers"));
             console.log("     > previousblockhash: " + (x["previousblockhash"] === undefined ? "Missing attribute" : /^[A-Za-z0-9\n]+$/.test(x["previousblockhash"])  ? "OK" : "Bad data format, expected only numbers and letters"));
             console.log("     > nextblockhash: "     + (x["nextblockhash"]     === undefined ? "Missing attribute" : /^[A-Za-z0-9\n]+$/.test(x["nextblockhash"])      ? "OK" : "Bad data format, expected only numbers and letters"));
-            console.log("     > tx: "                + (x["tx"]                === undefined ? "Missing attribute" : typeof x["tx"][Symbol.iterator] === "function" ? "OK" : "Bad data format, expected a list"));
-        },
-        process.argv[4]
-    );
+            console.log("     > tx: "                + (x["tx"]                === undefined ? "Missing attribute" : typeof x["tx"][Symbol.iterator] === "function"   ? "OK" : "Bad data format, expected a list"));
+    }, process.argv[4]);
     console.log("\nIMPORTANT NOTE: If you're using explorer urls, and the explorer doesn't allow too much consecutives API calls, then you should whitelist the bot IP, otherwise you may expect sometimes a error on some commands, even in this debug mode.\n");
     process.exit();
 }
@@ -641,5 +635,4 @@ process.on("unhandledRejection", err => {
 debug_bot();
 client.on("message", response_msg);
 client.login(conf.token).then(() => console.log("Bot ready!"));
-
 

@@ -77,7 +77,7 @@
   ],
   "requests": {
     "blockcount": "savenode-cli getblockcount",
-    "mncount": "savenode-cli masternode count",
+    "mncount": "savenode-cli masternode count | jq .enabled",
     "supply": "curl https://sno.ccore.online/ext/getmoneysupply",
     "balance": "curl https://sno.ccore.online/ext/getaddress/",
     "blockindex": "savenode-cli getblockhash ",
