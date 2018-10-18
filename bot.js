@@ -7,7 +7,8 @@ var conf = get_config();
 var client = new Discord.Client();
 
 /* TODO: 
- *  - moaaar exchanges
+ *  - Remove upper/lower-case restriction for tickers on config.json ??
+ *  - COINEX, Bitexbay, Aiodex, moaaar exchanges
 */ 
 
 class ExchangeData {
@@ -16,18 +17,18 @@ class ExchangeData {
         this.link = "";
         this.price = "Error";
         this.volume = "Error";
-        this.ask = "Error";
-        this.bid = "Error";
+        this.buy = "Error";
+        this.sell = "Error";
         this.change = "Error";
     }
-    fillj(json, price, volume, ask, bid, change) {
-        this.fill(json[price], json[volume], json[ask], json[bid], json[change]);
+    fillj(json, price, volume, buy, sell, change) {
+        this.fill(json[price], json[volume], json[buy], json[sell], json[change]);
     }
-    fill(price, volume, ask, bid, change) {
+    fill(price, volume, buy, sell, change) {
         this.price  = isNaN(price)  ? undefined : parseFloat(price).toFixed(8);
         this.volume = isNaN(volume) ? undefined : parseFloat(volume).toFixed(8);
-        this.ask    = isNaN(ask)    ? undefined : parseFloat(ask).toFixed(8);
-        this.bid    = isNaN(bid)    ? undefined : parseFloat(bid).toFixed(8);
+        this.buy    = isNaN(buy)    ? undefined : parseFloat(buy).toFixed(8);
+        this.sell   = isNaN(sell)   ? undefined : parseFloat(sell).toFixed(8);
         this.change = isNaN(change) ? undefined : (change >= 0.0 ? "+" : "") + parseFloat(change).toFixed(2) + "%";
     }
 }
@@ -101,6 +102,16 @@ function get_ticker(exchange) {
                 tmp = js_request("https://bittrex.com/api/v1.1/public/getmarketsummary?market=btc-{COIN}", true)["result"][0];
                 exdata.fill(tmp["Last"], tmp["BaseVolume"], tmp["Bid"], tmp["Ask"], tmp["Last"] / tmp["PrevDay"]); // change not 100% accurate
                 exdata.link = rg_replace("https://www.bittrex.com/Market/Index?MarketName=BTC-{COIN}");
+                break;
+            }
+            case "SouthXchange": {
+                exdata.fillj(js_request("https://www.southxchange.com/api/price/{COIN}/BTC"), "Last", "Volume24Hr", "Bid", "Ask", "Variation24Hr");
+                exdata.link = rg_replace("https://www.southxchange.com/Market/Book/{COIN}/BTC");
+                break;
+            }
+            case "Exrates": {
+                exdata.fillj(js_request("https://exrates.me/openapi/v1/public/ticker?currency_pair={COIN}_btc", true)[0], "last", "quoteVolume", "highestBid", "lowestAsk", "percentChange");
+                exdata.link = "https://exrates.me/dashboard"; // no filter
                 break;
             }
         }
@@ -179,8 +190,8 @@ function response_msg(msg) {
 
     if (msg.channel.id !== conf.channel || !msg.content.startsWith(conf.prefix) || msg.author.bot)
         return;
-    
-    var cmds = msg.content.slice(1).split(" ");
+
+    var cmds = msg.content.slice(conf.prefix.length).split(" ");
     var json, stage;
 
     const error_noparam = (n, descr) => {
@@ -236,8 +247,8 @@ function response_msg(msg) {
                         data.name,
                         hide_undef("**| Price** : ", data.price)  +
                         hide_undef("**| Vol** : ",   data.volume) +
-                        hide_undef("**| Buy** : ",   data.ask)    +
-                        hide_undef("**| Sell** : ",  data.bid)    +
+                        hide_undef("**| Buy** : ",   data.buy)    +
+                        hide_undef("**| Sell** : ",  data.sell)    +
                         hide_undef("**| Chg** : ",   data.change) +
                         "[Link](" + data.link   + ")",
                         true

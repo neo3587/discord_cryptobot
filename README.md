@@ -130,6 +130,8 @@ node bot.js debug SZ4pQpuqq11EG7dw6qjgqSs5tGq3iTw2uZ 8cd878d1646c66e46de6c65bfe5
 - HitBTC
 - YoBit
 - Bittrex
+- SouthXchange
+- Exrates
 - (more soon)
 
 # Additional
