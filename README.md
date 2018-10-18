@@ -1,6 +1,6 @@
 # Discord CryptoBot
 
-A discord bot originally made for BCARD, and reworked to work with SNO, it can be easily adapted for any other currency.
+A discord bot originally made for BCARD, and reworked to work with SNO and RESQ, it can be easily adapted for any other currency.
 
 # How to install
 
@@ -83,14 +83,14 @@ You'll have to modify the "config.json" file to make it fit with your cryptocurr
 "requests": {
     "blockcount": "mywalletname-cli getblockcount",    // change for: "curl http://mycoinexplorer.com/api/getblockcount" 
     "mncount":    "mywalletname-cli masternode count", // change for: "customprogramMNcount.exe" 
-    "supply":     "curl http://mycoinexplorer.com/ext/getmoneysupply", // change for: "customprogram2 supply"
-    "balance":    "curl http://mycoinexplorer.com/ext/getaddress/",    // change for: "" and <b>!balance</b> will be blocked
+    "supply":     "curl -s http://mycoinexplorer.com/ext/getmoneysupply", // change for: "customprogram supply"
+    "balance":    "curl -s http://mycoinexplorer.com/ext/getaddress/",    // change for: "" and <b>!balance</b> will be blocked
     "blockindex": "mywalletname-cli getblockhash ",    // <b>!!!</b> trailing space added on purpose or won't work, remove it only if using a url, same for "balance" and "blockhash"
     "blockhash":  "mywalletname-cli getblock "         // etc...
 }
 Important note if you customize the requests: 
     - "blockcount" must return a string convertible into a number.
-    - "mncount" must return a json type string with a number or string in a attribute called "enabled".
+    - "mncount" must return a string convertible into a number (some wallets returns a json, you can use "mywalletname-cli masternode count | jq .attributename" on the request string to give it the number, same works for urls, get jq here: https://stedolan.github.io/jq/.
     - "supply" must return a string convertible into a number.
     - "balance" expects to receive a string (the address) and must return a json type string with a number or string in three attributes called "sent", "received" and "balance".
     - "blockindex": expects to receive a string convertible into a number and must return a string that indicates the block hash of the given block number.
