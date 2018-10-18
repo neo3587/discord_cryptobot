@@ -7,12 +7,15 @@ var conf = get_config();
 var client = new Discord.Client();
 
 /* TODO: 
- *  - Remove upper/lower-case restriction for tickers on config.json ??
- *  - COINEX, Bitexbay, Aiodex, moaaar exchanges
+ *  - find a way to not force JSON types on mncount and balance (this one will remove sent and received)
+ *  - COINEX, Bitexbay, Aiodex, Binance, moaaar exchanges
 */ 
 
 class ExchangeData {
     constructor(name) {
+        this.defaults(name);
+    }
+    defaults(name) {
         this.name = name;
         this.link = "";
         this.price = "Error";
@@ -25,6 +28,8 @@ class ExchangeData {
         this.fill(json[price], json[volume], json[buy], json[sell], json[change]);
     }
     fill(price, volume, buy, sell, change) {
+        if (price === undefined && volume === undefined && buy === undefined && sell === undefined && change === undefined)
+            return;
         this.price  = isNaN(price)  ? undefined : parseFloat(price).toFixed(8);
         this.volume = isNaN(volume) ? undefined : parseFloat(volume).toFixed(8);
         this.buy    = isNaN(buy)    ? undefined : parseFloat(buy).toFixed(8);
@@ -45,71 +50,71 @@ function get_ticker(exchange) {
 
     try {
         var tmp;
-        switch (exchange) {
-            case "CryptoBridge": {
+        switch (exchange.toLowerCase()) {
+            case "cryptobridge": {
                 exdata.fillj(js_request("https://api.crypto-bridge.org/api/v1/ticker/{COIN}_BTC"), "last", "volume", "bid", "ask", "percentChange");
                 exdata.link = rg_replace("https://wallet.crypto-bridge.org/market/BRIDGE.{COIN}_BRIDGE.BTC");
                 break;
             }
-            case "Crex24": {
+            case "crex24": {
                 exdata.fillj(js_request("https://api.crex24.com/v2/public/tickers?instrument={COIN}-BTC")[0], "last", "volumeInBtc", "bid", "ask", "percentChange");
                 exdata.link = rg_replace("https://crex24.com/exchange/{COIN}-BTC");
                 break;
             }
-            case "CoinExchange": {
+            case "coinexchange": {
                 exdata.fillj(js_request("https://www.coinexchange.io/api/v1/getmarketsummary?market_id=" + conf.special_ticker.CoinExchange)["result"], "LastPrice", "BTCVolume", "BidPrice", "AskPrice", "Change");
                 exdata.link = rg_replace("https://www.coinexchange.io/market/{COIN}/BTC");
                 break;
             }
-            case "Graviex": {
+            case "graviex": {
                 exdata.fillj(js_request("https://graviex.net:443//api/v2/tickers/{COIN}btc.json", true)["ticker"], "last", "volbtc", "buy", "sell", "change");
                 exdata.link = rg_replace("https://graviex.net/markets/{COIN}btc", true);
                 break;
             }
-            case "Escodex": {
+            case "escodex": {
                 exdata.fillj(js_request("http://labs.escodex.com/api/ticker").find(x => x.base === "BTC" && x.quote === conf.coin.toUpperCase()), "latest", "base_volume", "lowest_ask", "highest_bid", "percent_change");
                 exdata.link = rg_replace("https://wallet.escodex.com/market/ESCODEX.{COIN}_ESCODEX.BTC");
                 break;
             }
-            case "Cryptopia": {
+            case "cryptopia": {
                 exdata.fillj(js_request("https://www.cryptopia.co.nz/api/GetMarket/{COIN}_BTC")["Data"], "LastPrice", "BaseVolume", "AskPrice", "BidPrice", "Change");
                 exdata.link = rg_replace("https://www.cryptopia.co.nz/Exchange/?market={COIN}_BTC");
                 break;
             }
-            case "Stex": {
+            case "stex": {
                 tmp = js_request("https://app.stex.com/api2/ticker").find(x => x.market_name === rg_replace("{COIN}_BTC"));
                 exdata.fill(tmp["last"], (tmp["last"] + tmp["lastDayAgo"]) / 2 * tmp["volume"], tmp["ask"], tmp["bid"], tmp["last"] / tmp["lastDayAgo"]); // volume and change not 100% accurate
                 exdata.link = rg_replace("https://app.stex.com/en/basic-trade/BTC?currency2={COIN}");
                 break;
             }
-            case "C-CEX": {
+            case "c-cex": {
                 tmp = js_request("https://c-cex.com/t/{COIN}-btc.json", true)["ticker"];
                 exdata.fill(tmp["lastprice"], js_request("https://c-cex.com/t/volume_btc.json")["ticker"][conf.coin.toLowerCase()]["vol"], tmp["buy"], tmp["sell"], undefined);
                 exdata.link = rg_replace("https://c-cex.com/?p={COIN}-btc", true);
                 break;
             }
-            case "HitBTC": {
+            case "hitbtc": {
                 exdata.fillj(js_request("https://api.hitbtc.com/api/2/public/ticker/{COIN}BTC"), "last", "volumeQuote", "ask", "bid", ""); // change not supported
                 exdata.link = rg_replace("https://hitbtc.com/{COIN}-to-BTC");
                 break;
             }
-            case "YoBit": {
+            case "yobit": {
                 exdata.fillj(js_request("https://yobit.net/api/2/{COIN}_btc/ticker", true)["ticker"], "last", "vol", "buy", "sell", ""); // change not supported
                 exdata.link = rg_replace("https://yobit.net/en/trade/{COIN}/BTC");
                 break;
             }
-            case "Bittrex": {
+            case "bittrex": {
                 tmp = js_request("https://bittrex.com/api/v1.1/public/getmarketsummary?market=btc-{COIN}", true)["result"][0];
                 exdata.fill(tmp["Last"], tmp["BaseVolume"], tmp["Bid"], tmp["Ask"], tmp["Last"] / tmp["PrevDay"]); // change not 100% accurate
                 exdata.link = rg_replace("https://www.bittrex.com/Market/Index?MarketName=BTC-{COIN}");
                 break;
             }
-            case "SouthXchange": {
+            case "southxchange": {
                 exdata.fillj(js_request("https://www.southxchange.com/api/price/{COIN}/BTC"), "Last", "Volume24Hr", "Bid", "Ask", "Variation24Hr");
                 exdata.link = rg_replace("https://www.southxchange.com/Market/Book/{COIN}/BTC");
                 break;
             }
-            case "Exrates": {
+            case "exrates": {
                 exdata.fillj(js_request("https://exrates.me/openapi/v1/public/ticker?currency_pair={COIN}_btc", true)[0], "last", "quoteVolume", "highestBid", "lowestAsk", "percentChange");
                 exdata.link = "https://exrates.me/dashboard"; // no filter
                 break;
