@@ -43,7 +43,7 @@ node bot.js
 
 You'll have to modify the "config.json" file to make it fit with your cryptocurrency, there's a list of every parameter:
 
-- **ticker:** Here is where you put the name of every exchange where you're listed, the name MUST be exactly equal (uppercases included) to the names from **Currently supported exchanges**, follow this scheme to add the links of the API and the market: 
+- **ticker:** Here is where you put the name of every exchange where you're listed, the name be equal (uppercases not necessary but recommended) to the names from **Currently supported exchanges**, follow this scheme to add the links of the API and the market: 
 ```
 "ticker": [
     "CryptoBridge",
