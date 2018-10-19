@@ -329,7 +329,7 @@ function response_msg(msg) {
                             },
                             {
                                 name: "Avg. MN Reward",
-                                value: parseInt(mncount / (86400 / conf.blocktime)) + "d " + parseInt(mncount / (3600 / conf.blocktime)) + "h " + parseInt(mncount / (360 / conf.blocktime)) + "m",
+                                value: parseInt(mncount / (86400 / conf.blocktime)) + "d " + parseInt(mncount / (3600 / conf.blocktime) % 24) + "h " + parseInt(mncount / (60 / conf.blocktime) % 60) + "m",
                                 inline: true
                             }
                         ]),

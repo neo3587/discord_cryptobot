@@ -64,7 +64,7 @@
   ],
   "requests": {
     "blockcount": "CARDbuyers-cli getblockcount",
-    "mncount": "CARDbuyers-cli masternode count",
+    "mncount": "CARDbuyers-cli masternode count | jq .enabled",
     "supply": "curl http://explorer.cardbuyers.cc:3001/ext/getmoneysupply",
     "balance": "curl http://explorer.cardbuyers.cc:3001/ext/getaddress/",
     "blockindex": "CARDbuyers-cli getblockhash ",
