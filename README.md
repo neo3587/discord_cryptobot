@@ -62,19 +62,20 @@ You'll have to modify the "config.json" file to make it fit with your cryptocurr
       "block": 18000, // from block 0 to 18000
       "coll": 1000, // collateral = 1000 coins
       "mn": 9.50, // MN reward = 10.50 coins
-      "pos": 0.50 // POS reward = 0.50 coins
+      "pow": 0.50 // POW reward = 0.50 coins
     },
     {
       "block": 36000, // from block 18001 to 36000
       "coll": 2000, // collateral increased to 2000 coins
       "mn": 14.25,
-      "pos": 0.75
+      "pow": 0.35,
+      "pos": 0.35   // POS reward added on this stage
     },
     {
       "block": -1, // from block 36001 to infinite
       "coll": 2000, // collateral didn't changed, but you have to put the value anyway
       "mn": 4.75,
-      "pos": 0.25
+      "pos": 0.25  // POW deleted on this stage, only POS remains
     }
 ]
 ```

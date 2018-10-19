@@ -8,8 +8,7 @@ var client = new Discord.Client();
 
 /* TODO: 
  *  - Add a way to run on background
- *  - Add POW on stages, remove POS/POW if undefined
- *  - COINEX, Bitexbay, Aiodex, Binance, moaaar exchanges
+ *  - COINEX, Bitexbay, Aiodex, Binance, Bitfinex, moaaar exchanges
 */ 
 
 
@@ -309,12 +308,20 @@ function response_msg(msg) {
                                 name: "MN Reward",
                                 value: stage.mn + " " + conf.coin,
                                 inline: true
-                            },
+                            }
+                        ].concat(stage.pow === undefined ? [] : [
                             {
-                                name: "POS Reward",
-                                value: stage.pos + " " + conf.coin,
+                                name: "POW Reward",
+                                value: stage.pow + " " + conf.coin,
                                 inline: true
-                            },
+                            }
+                        ]).concat(stage.pos === undefined ? [] : [
+                            {
+                                name: "POS Reward", value:
+                                stage.pos + " " + conf.coin,
+                                inline: true
+                            }
+                        ]).concat([
                             {
                                 name: "Locked",
                                 value: (mncount * stage.coll).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",") + " " + conf.coin + " (" + (mncount * stage.coll / supply * 100).toFixed(2) + "%)",
@@ -325,7 +332,7 @@ function response_msg(msg) {
                                 value: parseInt(mncount / (86400 / conf.blocktime)) + "d " + parseInt(mncount / (3600 / conf.blocktime)) + "h " + parseInt(mncount / (360 / conf.blocktime)) + "m",
                                 inline: true
                             }
-                        ],
+                        ]),
                         timestamp: new Date()
                     }
                 });
@@ -342,7 +349,7 @@ function response_msg(msg) {
                 var coinday = 86400 / conf.blocktime / mncount * stage.mn;
                 msg.channel.send({
                     embed: {
-                        title: conf.coin + " earnings",
+                        title: conf.coin + " Earnings",
                         color: conf.color.coininfo,
                         fields: [
                             {
@@ -384,35 +391,37 @@ function response_msg(msg) {
             if (!conf.cmd.balance || error_noparam(2, "You need to provide an address")) break;
             try {
                 json = JSON.parse(bash_cmd(conf.requests.balance + cmds[1]));
-                msg.channel.send({
-                    embed: {
-                        title: "Balance",
-                        color: conf.color.explorer,
-                        fields: [
-                            {
-                                name: "Address",
-                                value: cmds[1]
-                            },
-                            {
-                                name: "Sent",
-                                value: json["sent"] + " " + conf.coin,
-                                inline: true
-                            },
-                            {
-                                name: "Received",
-                                value: json["received"] + " " + conf.coin,
-                                inline: true
-                            },
-                            {
-                                name: "Balance",
-                                value: json["balance"] + " " + conf.coin,
-                                inline: true
-                            }
-                        ],
-                        timestamp: new Date()
-                    }
-                });
-                break;
+                if (json["sent"] !== undefined || json["received"] !== undefined || json["balance"] !== undefined) {
+                    msg.channel.send({
+                        embed: {
+                            title: "Balance",
+                            color: conf.color.explorer,
+                            fields: [
+                                {
+                                    name: "Address",
+                                    value: cmds[1]
+                                },
+                                {
+                                    name: "Sent",
+                                    value: json["sent"] + " " + conf.coin,
+                                    inline: true
+                                },
+                                {
+                                    name: "Received",
+                                    value: json["received"] + " " + conf.coin,
+                                    inline: true
+                                },
+                                {
+                                    name: "Balance",
+                                    value: json["balance"] + " " + conf.coin,
+                                    inline: true
+                                }
+                            ],
+                            timestamp: new Date()
+                        }
+                    });
+                    break;
+                }
             }
             catch (e) {
                 //
@@ -483,7 +492,8 @@ function response_msg(msg) {
         case "about": { 
             const donate = { // don't be evil with this, please
                 "BCARD": "BQmTwK685ajop8CFY6bWVeM59rXgqZCTJb",
-                "SNO": "SZ4pQpuqq11EG7dw6qjgqSs5tGq3iTw2uZ"
+                "SNO": "SZ4pQpuqq11EG7dw6qjgqSs5tGq3iTw2uZ",
+                "RESQ": "QXFszBEsRXWy2D2YFD39DUqpnBeMg64jqX"
             };
             msg.channel.send({
                 embed: {
@@ -493,7 +503,7 @@ function response_msg(msg) {
                         "**Source Code:** [Link](" + conf.sourcecode + ")\n" + // source link on conf just in case I change the repo
                         "**Description:** A simple bot for " + conf.coin + " to check the current status of the currency in many ways, use **!help** to see these ways\n" + 
                         (conf.coin in donate ? "**" + conf.coin + " Donations (to author):** " + donate[conf.coin] + "\n" : "") +
-                        "** BTC Donations (to author):** 3HE1kwgHEWvxBa38NHuQbQQrhNZ9wxjhe7\n" 
+                        "**BTC Donations (to author):** 3HE1kwgHEWvxBa38NHuQbQQrhNZ9wxjhe7" 
                 }
             });
             break;
