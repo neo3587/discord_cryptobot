@@ -8,7 +8,8 @@ var client = new Discord.Client();
 
 /* TODO: 
  *  - Add a way to run on background
- *  - COINEX, Bitexbay, Aiodex, Binance, Bitfinex, moaaar exchanges
+ *  - Add !tx-info again... but improved
+ *  - COINEX, Bitexbay, Aiodex, moaaar exchanges
 */ 
 
 
@@ -118,6 +119,17 @@ function get_ticker(exchange) {
             case "exrates": {
                 exdata.fillj(js_request("https://exrates.me/openapi/v1/public/ticker?currency_pair={COIN}_btc", true)[0], "last", "quoteVolume", "highestBid", "lowestAsk", "percentChange");
                 exdata.link = "https://exrates.me/dashboard"; // no filter
+                break;
+            }
+            case "binance": {
+                exdata.fillj(js_request("https://api.binance.com/api/v1/ticker/24hr?symbol={COIN}BTC"), "lastPrice", "quoteVolume", "bidPrice", "askPrice", "priceChangePercent");
+                exdata.link = rg_replace("https://www.binance.com/es/trade/{COIN}_BTC"); 
+                break;
+            }
+            case "bitfinex": {
+                tmp = js_request("https://api.bitfinex.com/v1/pubticker/{COIN}btc", true);
+                exdata.fill(tmp["last_price"], tmp["last_price"] * tmp["volume"], tmp["bid"], tmp["ask"], undefined); // volume not 100% accurate
+                exdata.link = rg_replace("https://www.bitfinex.com/t/{COIN}:BTC");
                 break;
             }
         }
