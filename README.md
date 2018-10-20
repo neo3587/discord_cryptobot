@@ -133,6 +133,8 @@ node bot.js debug SZ4pQpuqq11EG7dw6qjgqSs5tGq3iTw2uZ 8cd878d1646c66e46de6c65bfe5
 - Bittrex
 - SouthXchange
 - Exrates
+- Binance
+- Bitfinex
 - (more soon)
 
 # Additional
