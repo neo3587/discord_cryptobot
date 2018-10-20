@@ -143,6 +143,8 @@ BTC Donations: 3HE1kwgHEWvxBa38NHuQbQQrhNZ9wxjhe7
 BCARD Donations: BQmTwK685ajop8CFY6bWVeM59rXgqZCTJb
 
 SNO Donations: SZ4pQpuqq11EG7dw6qjgqSs5tGq3iTw2uZ
+
+RESQ Donations: QhsqRbQVNHCAe93puAnHUX96jsmMxtpBNh
 ```
 
 A big thanks to https://github.com/discordjs/discord.js for this amazing library for interfacing with the discord API.
