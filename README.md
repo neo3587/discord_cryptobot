@@ -126,27 +126,26 @@ node bot.js debug SZ4pQpuqq11EG7dw6qjgqSs5tGq3iTw2uZ 8cd878d1646c66e46de6c65bfe5
 - Graviex
 - Escodex
 - Cryptopia
-- Stex
-- C-CEX
-- HitBTC
-- YoBit
-- Bittrex
+- Stex (24h BTC volume not 100% accurate)
+- C-CEX (24h change not supported)
+- HitBTC (24h change not supported)
+- YoBit (24h change not supported)
+- Bittrex (24h change not 100% accurate)
 - SouthXchange
 - Exrates
 - Binance
-- Bitfinex
+- Bitfinex (24h BTC volume not supported, 24h change not supported)
 - (more soon)
+
+NOTE: The non-compatible or not 100% accurate features are due to the exchange API.
 
 # Additional
 
 ```
-BTC Donations: 3HE1kwgHEWvxBa38NHuQbQQrhNZ9wxjhe7
-
+BTC Donations:   3HE1kwgHEWvxBa38NHuQbQQrhNZ9wxjhe7
 BCARD Donations: BQmTwK685ajop8CFY6bWVeM59rXgqZCTJb
-
-SNO Donations: SZ4pQpuqq11EG7dw6qjgqSs5tGq3iTw2uZ
-
-RESQ Donations: QhsqRbQVNHCAe93puAnHUX96jsmMxtpBNh
+SNO Donations:   SZ4pQpuqq11EG7dw6qjgqSs5tGq3iTw2uZ
+RESQ Donations:  QhsqRbQVNHCAe93puAnHUX96jsmMxtpBNh
 ```
 
 A big thanks to https://github.com/discordjs/discord.js for this amazing library for interfacing with the discord API.
