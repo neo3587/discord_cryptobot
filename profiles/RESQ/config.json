@@ -3,7 +3,8 @@
     "CoinExchange": "984"
   },
   "ticker": [
-    "Crex24"
+    "Crex24",
+    "Moondex"
   ],
   "color": {
     "prices": 3447003,
@@ -86,12 +87,12 @@
     }
   ],
   "requests": {
-    "blockcount": "resq-cli getblockcount",
-    "mncount": "resq-cli masternode count",
+    "blockcount": "curl -s http://159.69.112.3:3001/api/getblockcount",
+    "mncount": "curl -s http://159.69.112.3:3001/api/getmasternodecount",
     "supply": "curl -s http://159.69.112.3:3001/ext/getmoneysupply",
     "balance": "curl -s http://159.69.112.3:3001/ext/getaddress/",
-    "blockindex": "resq-cli getblockhash ",
-    "blockhash": "resq-cli getblock "
+    "blockindex": "curl -s http://159.69.112.3:3001/api/getblockhash?index=",
+    "blockhash": "curl -s http://159.69.112.3:3001/api/getblock?hash="
   },
   "hidenotsupported": false,
   "sourcecode": "https://github.com/neo3587/discord_cryptobot",
