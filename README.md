@@ -57,7 +57,6 @@ You'll have to modify the "config.json" file to make it fit with your cryptocurr
 - **stages:** List of every stage of the coin (MN/POS rewards and collateral from block X to Y), it follows this scheme: 
 ```
 "stages": [
-    "stages": [
     {
       "block": 18000, // from block 0 to 18000
       "coll": 1000, // collateral = 1000 coins
@@ -114,9 +113,9 @@ Run the bot by adding debug to check if the configured tickers and requests work
 ```
 node bot.js debug <valid_address_to_check_balance> <valid_hash_to_check_blockhash>
 ```
-Per example with the SNO profile: 
+Per example with the RESQ profile: 
 ```
-node bot.js debug SZ4pQpuqq11EG7dw6qjgqSs5tGq3iTw2uZ 8cd878d1646c66e46de6c65bfe54404474d4e9f5364062b0fc08ffaf2d82309e
+node bot.js debug QXFszBEsRXWy2D2YFD39DUqpnBeMg64jqX ae3b127dc677c9f5d6ca24232da93776f3d2d63f11f00841ac07300f5e7af90b
 ```
 # Currently supported exchanges
 
