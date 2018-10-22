@@ -134,6 +134,7 @@ node bot.js debug QXFszBEsRXWy2D2YFD39DUqpnBeMg64jqX ae3b127dc677c9f5d6ca24232da
 - Exrates
 - Binance
 - Bitfinex (24h BTC volume not supported, 24h change not supported)
+- MoonDEX
 - (more soon)
 
 NOTE: The non-compatible or not 100% accurate features are due to the exchange API.
