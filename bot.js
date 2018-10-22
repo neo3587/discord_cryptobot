@@ -132,6 +132,11 @@ function get_ticker(exchange) {
                 exdata.link = rg_replace("https://www.bitfinex.com/t/{COIN}:BTC");
                 break;
             }
+            case "moondex": {
+                exdata.fillj(js_request("https://data.moondex.io/ticker").find(x => x.pair === rg_replace("{COIN}_BTC")), "latest", "volume", "highestBid", "lowestAsk", "percentChange");
+                exdata.link = rg_replace("https://beta.moondex.io/market/MOONDEX.{COIN}_MOONDEX.BTC");
+                break;
+            }
         }
     }
     catch (e) {
