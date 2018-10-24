@@ -9,7 +9,7 @@ var client = new Discord.Client();
 /* TODO: 
  *  - Add a way to run on background
  *  - Add !tx-info again... but improved
- *  - COINEX, Bitexbay, Aiodex, moaaar exchanges
+ *  - Bitexbay => 99% sure scam, Aiodex => almost 0 volume, Cryptohub => dead... need to find good exchanges to add -_-"
 */ 
 
 
@@ -135,6 +135,12 @@ function get_ticker(exchange) {
             case "moondex": {
                 exdata.fillj(js_request("https://data.moondex.io/ticker").find(x => x.pair === rg_replace("{COIN}_BTC")), "latest", "volume", "highestBid", "lowestAsk", "percentChange");
                 exdata.link = rg_replace("https://beta.moondex.io/market/MOONDEX.{COIN}_MOONDEX.BTC");
+                break;
+            }
+            case "coinex": {
+                tmp = js_request("https://api.coinex.com/v1/market/ticker?market={COIN}BTC")["data"]["ticker"];
+                exdata.fill(tmp["last"], (parseFloat(tmp["high"]) + parseFloat(tmp["low"])) / 2 * tmp["vol"], tmp["buy"], tmp["sell"], tmp["last"] / tmp["open"]); // volume not 100% accurate
+                exdata.link = rg_replace("https://www.coinex.com/exchange?currency=btc&dest={COIN}#limit", true);
                 break;
             }
         }

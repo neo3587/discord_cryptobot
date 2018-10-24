@@ -135,6 +135,7 @@ node bot.js debug QXFszBEsRXWy2D2YFD39DUqpnBeMg64jqX ae3b127dc677c9f5d6ca24232da
 - Binance
 - Bitfinex (24h BTC volume not supported, 24h change not supported)
 - MoonDEX
+- Coinex (24h BTC volume not 100% accurate)
 - (more soon)
 
 NOTE: The non-compatible or not 100% accurate features are due to the exchange API.
