@@ -133,7 +133,7 @@ function get_ticker(exchange) {
                 break;
             }
             case "moondex": {
-                exdata.fillj(js_request("https://data.moondex.io/ticker").find(x => x.pair === rg_replace("{COIN}_BTC")), "latest", "volume", "highestBid", "lowestAsk", "percentChange");
+                exdata.fillj(js_request("https://data.moondex.io/ticker/{COIN}_BTC"), "latest", "volume", "highestBid", "lowestAsk", "percentChange");
                 exdata.link = rg_replace("https://beta.moondex.io/market/MOONDEX.{COIN}_MOONDEX.BTC");
                 break;
             }
