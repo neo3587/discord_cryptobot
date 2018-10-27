@@ -133,12 +133,14 @@ node bot.js debug QXFszBEsRXWy2D2YFD39DUqpnBeMg64jqX ae3b127dc677c9f5d6ca24232da
 - SouthXchange
 - Exrates
 - Binance
-- Bitfinex (24h BTC volume not supported, 24h change not supported)
+- Bitfinex (24h BTC volume not 100% accurate)
 - MoonDEX
 - Coinex (24h BTC volume not 100% accurate)
+- P2PB2B
+- CoinsBit
 - (more soon)
 
-NOTE: The non-compatible or not 100% accurate features are due to the exchange API.
+NOTE: The non-supported or not 100% accurate features are due to the exchange API.
 
 # Additional
 
