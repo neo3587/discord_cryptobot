@@ -8,8 +8,9 @@ var client = new Discord.Client();
 
 /* TODO: 
  *  - Add a way to run on background
- *  - Add !tx-info again... but improved
- *  - Bitexbay => 99% sure scam, Aiodex => almost 0 volume, Cryptohub => dead... need to find good exchanges to add -_-"
+ *  - Add a way to remove the MN info
+ *  - Add a way to reorder !stats 
+ *  - Add a way to calculate the earnings of POW... and maybe POS
 */ 
 
 
@@ -127,8 +128,8 @@ function get_ticker(exchange) {
                 break;
             }
             case "bitfinex": {
-                tmp = js_request("https://api.bitfinex.com/v1/pubticker/{COIN}btc", true);
-                exdata.fill(tmp["last_price"], tmp["last_price"] * tmp["volume"], tmp["bid"], tmp["ask"], undefined); // volume not 100% accurate
+                tmp = js_request("https://api.bitfinex.com/v2/ticker/t{COIN}BTC"); // [bid, bidsize, ask, asksize, daychg, daychg%, last, vol, high, low]
+                exdata.fill(tmp[6], (tmp[8] + tmp[9]) / 2 * tmp[7], tmp[0], tmp[2], tmp[5]); // volume not 100% accurate
                 exdata.link = rg_replace("https://www.bitfinex.com/t/{COIN}:BTC");
                 break;
             }
@@ -141,6 +142,16 @@ function get_ticker(exchange) {
                 tmp = js_request("https://api.coinex.com/v1/market/ticker?market={COIN}BTC")["data"]["ticker"];
                 exdata.fill(tmp["last"], (parseFloat(tmp["high"]) + parseFloat(tmp["low"])) / 2 * tmp["vol"], tmp["buy"], tmp["sell"], tmp["last"] / tmp["open"]); // volume not 100% accurate
                 exdata.link = rg_replace("https://www.coinex.com/exchange?currency=btc&dest={COIN}#limit", true);
+                break;
+            }
+            case "p2pb2b": {
+                exdata.fillj(js_request("https://p2pb2b.io/api/v1/public/ticker?market={COIN}_BTC")["result"], "last", "deal", "bid", "ask", "change");
+                exdata.link = rg_replace("https://p2pb2b.io/trade/{COIN}_BTC");
+                break;
+            }
+            case "coinsbit": {
+                exdata.fillj(js_request("https://coinsbit.io/api/v1/public/ticker?market={COIN}_BTC")["result"], "last", "deal", "bid", "ask", "change");
+                exdata.link = rg_replace("https://coinsbit.io/trade/{COIN}_BTC");
                 break;
             }
         }
@@ -302,6 +313,7 @@ function response_msg(msg) {
                 new Promise((resolve, reject) => resolve(bash_cmd(conf.requests.supply)))
             ]).then(([blockcount, mncount, supply]) => {
                 stage = get_stage(blockcount);
+                //var stg_index = conf.stages.indexOf(stage);
                 msg.channel.send({
                     embed: {
                         title: conf.coin + " Stats",
@@ -355,6 +367,12 @@ function response_msg(msg) {
                                 value: parseInt(mncount / (86400 / conf.blocktime)) + "d " + parseInt(mncount / (3600 / conf.blocktime) % 24) + "h " + parseInt(mncount / (60 / conf.blocktime) % 60) + "m",
                                 inline: true
                             }
+                        //]).concat(stg_index === conf.stages.length ? [] : [ // need to do some adjustments before adding this
+                        //    {
+                        //        name: "Next Stage",
+                        //        value: parseInt((conf.stages[stg_index].block - blockcount) / (86400 / conf.blocktime)) + "d " + parseInt((conf.stages[stg_index].block - blockcount) / (3600 / conf.blocktime) % 24) + "h " + parseInt((conf.stages[stg_index].block - blockcount) / (60 / conf.blocktime) % 60) + "m",
+                        //        inline: true
+                        //    }
                         ]),
                         timestamp: new Date()
                     }
