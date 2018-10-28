@@ -7,9 +7,9 @@ var conf = get_config();
 var client = new Discord.Client();
 
 /* TODO: 
- *  - Add a way to run on background
+ *  - Add a way to run on background (without 3rd party software if possible)
  *  - Add a way to remove the MN info
- *  - Add a way to reorder !stats 
+ *  - Add a way to reorder !stats
  *  - Add a way to calculate the earnings of POW... and maybe POS
 */ 
 
@@ -175,7 +175,7 @@ function get_config() {
     return json;
 }
 function get_stage(blk) {
-    for (stage of conf.stages)
+    for (let stage of conf.stages)
         if (blk <= stage.block)
             return stage;
     return conf.stages[conf.stages.length - 1];
@@ -190,7 +190,7 @@ function bash_cmd(cmd) {
     return (process.platform === "win32" ? spawnSync("cmd.exe", ["/S", "/C", cmd]) : spawnSync("sh", ["-c", cmd])).stdout.toString();
 }
 function restart_bot() {
-    for (i = 5; i > 0; i--) {
+    for (let i = 5; i > 0; i--) {
         console.log("Restarting bot in " + i + " seconds..."); // just to avoid constant reset in case of constant crash cause no internet
         Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 1000);
     }
@@ -198,32 +198,355 @@ function restart_bot() {
     client.on("message", response_msg);
     client.login(conf.token).then(() => console.log("Bot restart succeeded!"));
 }
-function block_info_message(msg, blk) {
-    var str = "Invalid block index or hash";
-    try {
-        var json = JSON.parse(blk);
-        str =
-            "**Index:** " + json["height"] + "\n" +
-            "**Hash:** " + json["hash"] + "\n" +
-            "**Confirmations:** " + json["confirmations"] + "\n" +
-            "**Size:** " + json["size"] + "\n" +
-            "**Date:** " + new Date(new Number(json["time"]) * 1000).toUTCString() + "\n" +
-            "**Prev Hash:** " + json["previousblockhash"] + "\n" +
-            "**Next Hash:** " + json["nextblockhash"] + "\n" +
-            "**Transactions:**\n";
-        for (i = 0; i < json["tx"].length; i++)
-            str += json["tx"][i] + "\n";
+
+class CMD {
+
+    constructor(msg) {
+        this.msg = msg;
     }
-    catch (e) {
-       //
+
+    price() {
+
+        var promises = [];
+        for (let ticker of conf.ticker)
+            promises.push(new Promise((resolve, reject) => resolve(get_ticker(ticker))));
+
+        Promise.all(promises).then(values => {
+
+            const hide_undef = (str, val) => {
+                if (val === undefined)
+                    return conf.hidenotsupported ? "\n" : str + "Not Supported" + "\n";
+                return str + val + "\n";
+            };
+
+            var embed = new Discord.RichEmbed();
+            embed.title = "**Price Ticker**";
+            embed.color = conf.color.prices;
+            embed.timestamp = new Date();
+
+            for (let data of values) {
+                embed.addField(
+                    data.name,
+                    hide_undef("**| Price** : ", data.price) +
+                    hide_undef("**| Vol** : ", data.volume) +
+                    hide_undef("**| Buy** : ", data.buy) +
+                    hide_undef("**| Sell** : ", data.sell) +
+                    hide_undef("**| Chg** : ", data.change) +
+                    "[Link](" + data.link + ")",
+                    true
+                );
+            }
+            if (embed.fields.length % 3 === 2) // fix bad placing if a row have 2 tickers
+                embed.addBlankField(true);
+
+            this.msg.channel.send(embed);
+        });
+
     }
-    msg.channel.send({
-        embed: {
-            title: "Block info",
-            color: conf.color.explorer,
-            description: str
+
+    stats() {
+
+        Promise.all([
+            new Promise((resolve, reject) => resolve(bash_cmd(conf.requests.blockcount))),
+            new Promise((resolve, reject) => resolve(bash_cmd(conf.requests.mncount))),
+            new Promise((resolve, reject) => resolve(bash_cmd(conf.requests.supply)))
+        ]).then(([blockcount, mncount, supply]) => {
+
+            var stage = get_stage(blockcount);
+            //var stg_index = conf.stages.indexOf(stage);
+
+            this.msg.channel.send({
+                embed: {
+                    title: conf.coin + " Stats",
+                    color: conf.color.coininfo,
+                    fields: [
+                        {
+                            name: "Block Count",
+                            value: blockcount,
+                            inline: true
+                        },
+                        {
+                            name: "MN Count",
+                            value: mncount,
+                            inline: true
+                        },
+                        {
+                            name: "Supply",
+                            value: parseFloat(supply).toFixed(4).replace(/(\d)(?=(?:\d{3})+(?:\.|$))|(\.\d{4}?)\d*$/g, (m, s1, s2) => s2 || s1 + ',') + " " + conf.coin,
+                            inline: true
+                        },
+                        {
+                            name: "Collateral",
+                            value: stage.coll + " " + conf.coin,
+                            inline: true
+                        },
+                        {
+                            name: "MN Reward",
+                            value: stage.mn + " " + conf.coin,
+                            inline: true
+                        }
+                    ].concat(stage.pow === undefined ? [] : [
+                        {
+                            name: "POW Reward",
+                            value: stage.pow + " " + conf.coin,
+                            inline: true
+                        }
+                    ]).concat(stage.pos === undefined ? [] : [
+                        {
+                            name: "POS Reward", value:
+                                stage.pos + " " + conf.coin,
+                            inline: true
+                        }
+                    ]).concat([
+                        {
+                            name: "Locked",
+                            value: (mncount * stage.coll).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",") + " " + conf.coin + " (" + (mncount * stage.coll / supply * 100).toFixed(2) + "%)",
+                            inline: true
+                        },
+                        {
+                            name: "Avg. MN Reward",
+                            value: parseInt(mncount / (86400 / conf.blocktime)) + "d " + parseInt(mncount / (3600 / conf.blocktime) % 24) + "h " + parseInt(mncount / (60 / conf.blocktime) % 60) + "m",
+                            inline: true
+                        }
+                        //]).concat(stg_index === conf.stages.length ? [] : [ // need to do some adjustments before adding this
+                        //    {
+                        //        name: "Next Stage",
+                        //        value: parseInt((conf.stages[stg_index].block - blockcount) / (86400 / conf.blocktime)) + "d " + parseInt((conf.stages[stg_index].block - blockcount) / (3600 / conf.blocktime) % 24) + "h " + parseInt((conf.stages[stg_index].block - blockcount) / (60 / conf.blocktime) % 60) + "m",
+                        //        inline: true
+                        //    }
+                    ]),
+                    timestamp: new Date()
+                }
+            });
+
+        });
+
+    }
+    earnings() {
+
+        Promise.all([
+            new Promise((resolve, reject) => resolve(bash_cmd(conf.requests.blockcount))),
+            new Promise((resolve, reject) => resolve(bash_cmd(conf.requests.mncount)))
+        ]).then(([blockcount, mncount]) => {
+            var stage = get_stage(blockcount);
+            var coinday = 86400 / conf.blocktime / mncount * stage.mn;
+            this.msg.channel.send({
+                embed: {
+                    title: conf.coin + " Earnings",
+                    color: conf.color.coininfo,
+                    fields: [
+                        {
+                            name: "ROI",
+                            value: (36500 / (stage.coll / coinday)).toFixed(2) + "% / " + (stage.coll / coinday).toFixed(2) + " days"
+                        },
+                        {
+                            name: "Daily",
+                            value: coinday.toFixed(4) + " " + conf.coin,
+                            inline: true
+                        },
+                        {
+                            name: "Weekly",
+                            value: (coinday * 7).toFixed(4) + " " + conf.coin,
+                            inline: true
+                        },
+                        {
+                            name: "Monthly",
+                            value: (coinday * 30).toFixed(4) + " " + conf.coin,
+                            inline: true
+                        },
+                        {
+                            name: "Yearly",
+                            value: (coinday * 365).toFixed(4) + " " + conf.coin,
+                            inline: true
+                        }
+                    ],
+                    timestamp: new Date()
+                }
+            });
+
+        });
+
+    }
+
+    balance(addr) {
+
+        try {
+            var json = JSON.parse(bash_cmd(conf.requests.balance + addr));
+            if (json["sent"] !== undefined || json["received"] !== undefined || json["balance"] !== undefined) {
+                msg.channel.send({
+                    embed: {
+                        title: "Balance",
+                        color: conf.color.explorer,
+                        fields: [
+                            {
+                                name: "Address",
+                                value: addr
+                            },
+                            {
+                                name: "Sent",
+                                value: json["sent"] + " " + conf.coin,
+                                inline: true
+                            },
+                            {
+                                name: "Received",
+                                value: json["received"] + " " + conf.coin,
+                                inline: true
+                            },
+                            {
+                                name: "Balance",
+                                value: json["balance"] + " " + conf.coin,
+                                inline: true
+                            }
+                        ],
+                        timestamp: new Date()
+                    }
+                });
+            }
         }
-    });
+        catch (e) {
+            //
+        }
+        this.msg.channel.send({
+            embed: {
+                title: "Balance",
+                color: conf.color.explorer,
+                description: "Invalid address: " + cmds[1],
+                timestamp: new Date()
+            }
+        });
+
+    }
+    block_index(index) {
+        this.block_hash(bash_cmd(conf.requests.blockindex + index));
+    }
+    block_hash(hash) {
+
+        var str = "Invalid block index or hash";
+
+        if (/^[A-Za-z0-9\n]+$/.test(hash)) {
+            try {
+                var json = JSON.parse(bash_cmd(conf.requests.blockhash + hash));
+                str =
+                    "**Index:** " + json["height"] + "\n" +
+                    "**Hash:** " + json["hash"] + "\n" +
+                    "**Confirmations:** " + json["confirmations"] + "\n" +
+                    "**Size:** " + json["size"] + "\n" +
+                    "**Date:** " + new Date(new Number(json["time"]) * 1000).toUTCString() + "\n" +
+                    "**Prev Hash:** " + json["previousblockhash"] + "\n" +
+                    "**Next Hash:** " + json["nextblockhash"] + "\n" +
+                    "**Transactions:**\n";
+                for (let i = 0; i < json["tx"].length; i++)
+                    str += json["tx"][i] + "\n";
+            }
+            catch (e) {
+                //
+            }
+        }
+        this.msg.channel.send({
+            embed: {
+                title: "Block info",
+                color: conf.color.explorer,
+                description: str
+            }
+        });
+
+    }
+
+    help() {
+
+        const blocked_cmd = (cmd, str) => {
+            return !cmd ? "*blocked command*" : str;
+        };
+        this.msg.channel.send({
+            embed: {
+                title: "**Available commands**",
+                color: conf.color.other,
+                fields: [
+                    {
+                        name: "Exchanges:",
+                        value:
+                            " - **" + conf.prefix + "price" + "** : get the current price of " + conf.coin + " on every listed exchange\n"
+                    },
+                    {
+                        name: "Explorer:",
+                        value:
+                            " - **" + conf.prefix + "stats** : " + blocked_cmd(conf.cmd.stats, "get the current stats of the " + conf.coin + " blockchain") + "\n" +
+                            " - **" + conf.prefix + "earnings** : " + blocked_cmd(conf.cmd.earnings, "get the expected " + conf.coin + " earnings per masternode to get an idea of how close you are to getting a lambo") + "\n" +
+                            " - **" + conf.prefix + "balance <address>** : " + blocked_cmd(conf.cmd.balance, "show the balance, sent and received of the given address") + "\n" +
+                            " - **" + conf.prefix + "block-index <number>** : " + blocked_cmd(conf.cmd.blockindex, "show the info of the block by its index") + "\n" +
+                            " - **" + conf.prefix + "block-hash <hash>** : " + blocked_cmd(conf.cmd.blockhash, "show the info of the block by its hash") + "\n"
+                    },
+                    {
+                        name: "Other:",
+                        value:
+                            " - **" + conf.prefix + "help** : the command that you just used\n" +
+                            " - **" + conf.prefix + "about** : know more about me :smirk:"
+                    },
+                    {
+                        name: "Admins only:",
+                        value:
+                            " - **" + conf.prefix + "conf-get** : retrieve the bot config via dm\n" +
+                            " - **" + conf.prefix + "conf-set** : set a new config to the bot via dm\n"
+                    }
+                ]
+            }
+        });
+
+    }
+    about() {
+
+        const donate = { // don't be evil with this, please
+            "BCARD": "BQmTwK685ajop8CFY6bWVeM59rXgqZCTJb",
+            "SNO": "SZ4pQpuqq11EG7dw6qjgqSs5tGq3iTw2uZ",
+            "RESQ": "QXFszBEsRXWy2D2YFD39DUqpnBeMg64jqX"
+        };
+        this.msg.channel.send({
+            embed: {
+                title: "**About**",
+                color: conf.color.other,
+                description: "**Author:** <@464599914962485260>\n" +
+                    "**Source Code:** [Link](" + conf.sourcecode + ")\n" + // source link on conf just in case I change the repo
+                    "**Description:** A simple bot for " + conf.coin + " to check the current status of the currency in many ways, use **!help** to see these ways\n" +
+                    (conf.coin in donate ? "**" + conf.coin + " Donations (to author):** " + donate[conf.coin] + "\n" : "") +
+                    "**BTC Donations (to author):** 3HE1kwgHEWvxBa38NHuQbQQrhNZ9wxjhe7"
+            }
+        });
+
+    }
+
+    conf_get() {
+        this.msg.channel.send("<@" + this.msg.author.id + "> check the dm I just sent to you :wink:");
+        this.msg.author.send({ files: ["./config.json"] });
+    }
+    conf_set() {
+        this.msg.channel.send("<@" + this.msg.author.id + "> check the dm I just sent to you :wink:");
+        this.msg.author.send("Put the config.json file here and I'll update myself with the changes, don't send any message, just drag and drop the file, you have 90 seconds to put the file or you'll have to use **!conf-set** again").then(reply => {
+            var msgcol = new Discord.MessageCollector(reply.channel, m => m.author.id === this.msg.author.id, { time: 90000 });
+            msgcol.on("collect", (elem, col) => {
+                msgcol.stop("received");
+                if (elem.attachments.array()[0]["filename"] !== "config.json") {
+                    this.msg.author.send("I requested a file called 'config.json', not whatever is this :expressionless: ");
+                    return;
+                }
+                try {
+                    var conf_res = synced_request(elem.attachments.array()[0]["url"]);
+                    conf_res = conf_res.slice(conf_res.indexOf("{"));
+                    JSON.parse(conf_res); // just check if throws
+                    fs.writeFileSync("./config.json", conf_res);
+                    conf = get_config();
+                    this.msg.channel.send("Config updated by <@" + this.msg.author.id + ">, if something goes wrong, it will be his fault :stuck_out_tongue: ");
+                }
+                catch (e) {
+                    this.msg.author.send("Something seems wrong on the json file you sent, check that everything is okay and use **!conf-set** again");
+                }
+            });
+            msgcol.on("end", (col, reason) => {
+                if (reason === "time")
+                    this.msg.author.send("Timeout, any file posted from now ill be ignored unless **!conf-set** is used again");
+            });
+        });
+    }
+
 }
 
 function response_msg(msg) {
@@ -231,11 +554,11 @@ function response_msg(msg) {
     if (msg.channel.id !== conf.channel || !msg.content.startsWith(conf.prefix) || msg.author.bot)
         return;
 
-    var cmds = msg.content.slice(conf.prefix.length).split(" ");
-    var json, stage;
+    var args = msg.content.slice(conf.prefix.length).split(" ");
+    var cmd = new CMD(msg);
 
     const error_noparam = (n, descr) => {
-        if (cmds.length >= n)
+        if (args.length >= n)
             return false;
         msg.channel.send({
             embed: {
@@ -259,294 +582,54 @@ function response_msg(msg) {
         return true;
     };
 
-    switch (cmds[0]) {
+    switch (args[0]) {
         
         // Exchanges: 
 
         case "price": {
-
-            var promises = [];
-            for (ticker of conf.ticker)
-                promises.push(new Promise((resolve, reject) => resolve(get_ticker(ticker))));
-
-            Promise.all(promises).then(values => { 
-
-                const hide_undef = (str, val) => {
-                    if (val === undefined) 
-                        return conf.hidenotsupported ? "\n" : str + "Not Supported" + "\n";
-                    return str + val + "\n";
-                };
-
-                var embed = new Discord.RichEmbed();
-                embed.title = "**Price Ticker**";
-                embed.color = conf.color.prices;
-                embed.timestamp = new Date();
-
-                for (data of values) {
-                    embed.addField(
-                        data.name,
-                        hide_undef("**| Price** : ", data.price)  +
-                        hide_undef("**| Vol** : ",   data.volume) +
-                        hide_undef("**| Buy** : ",   data.buy)    +
-                        hide_undef("**| Sell** : ",  data.sell)    +
-                        hide_undef("**| Chg** : ",   data.change) +
-                        "[Link](" + data.link + ")",
-                        true
-                    );
-                }
-                if (embed.fields.length % 3 === 2) // fix bad placing if a row have 2 tickers
-                    embed.addBlankField(true);
-
-                msg.channel.send(embed);
-            });
-
+            cmd.price();
             break;
         }
 
         // Coin Info:
 
         case "stats": {
-            if (!conf.cmd.stats) break;
-            Promise.all([
-                new Promise((resolve, reject) => resolve(bash_cmd(conf.requests.blockcount))),
-                new Promise((resolve, reject) => resolve(bash_cmd(conf.requests.mncount))),
-                new Promise((resolve, reject) => resolve(bash_cmd(conf.requests.supply)))
-            ]).then(([blockcount, mncount, supply]) => {
-                stage = get_stage(blockcount);
-                //var stg_index = conf.stages.indexOf(stage);
-                msg.channel.send({
-                    embed: {
-                        title: conf.coin + " Stats",
-                        color: conf.color.coininfo,
-                        fields: [
-                            {
-                                name: "Block Count",
-                                value: blockcount,
-                                inline: true
-                            },
-                            {
-                                name: "MN Count",
-                                value: mncount,
-                                inline: true
-                            },
-                            {
-                                name: "Supply",
-                                value: parseFloat(supply).toFixed(4).replace(/(\d)(?=(?:\d{3})+(?:\.|$))|(\.\d{4}?)\d*$/g, (m, s1, s2) => s2 || s1 + ',') + " " + conf.coin,
-                                inline: true
-                            },
-                            {
-                                name: "Collateral",
-                                value: stage.coll + " " + conf.coin,
-                                inline: true
-                            },
-                            {
-                                name: "MN Reward",
-                                value: stage.mn + " " + conf.coin,
-                                inline: true
-                            }
-                        ].concat(stage.pow === undefined ? [] : [
-                            {
-                                name: "POW Reward",
-                                value: stage.pow + " " + conf.coin,
-                                inline: true
-                            }
-                        ]).concat(stage.pos === undefined ? [] : [
-                            {
-                                name: "POS Reward", value:
-                                stage.pos + " " + conf.coin,
-                                inline: true
-                            }
-                        ]).concat([
-                            {
-                                name: "Locked",
-                                value: (mncount * stage.coll).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",") + " " + conf.coin + " (" + (mncount * stage.coll / supply * 100).toFixed(2) + "%)",
-                                inline: true
-                            },
-                            {
-                                name: "Avg. MN Reward",
-                                value: parseInt(mncount / (86400 / conf.blocktime)) + "d " + parseInt(mncount / (3600 / conf.blocktime) % 24) + "h " + parseInt(mncount / (60 / conf.blocktime) % 60) + "m",
-                                inline: true
-                            }
-                        //]).concat(stg_index === conf.stages.length ? [] : [ // need to do some adjustments before adding this
-                        //    {
-                        //        name: "Next Stage",
-                        //        value: parseInt((conf.stages[stg_index].block - blockcount) / (86400 / conf.blocktime)) + "d " + parseInt((conf.stages[stg_index].block - blockcount) / (3600 / conf.blocktime) % 24) + "h " + parseInt((conf.stages[stg_index].block - blockcount) / (60 / conf.blocktime) % 60) + "m",
-                        //        inline: true
-                        //    }
-                        ]),
-                        timestamp: new Date()
-                    }
-                });
-            });
+            if (conf.cmd.stats)
+                cmd.stats();
             break;
         }
         case "earnings": { 
-            if (!conf.cmd.earnings) break;
-            Promise.all([
-                new Promise((resolve, reject) => resolve(bash_cmd(conf.requests.blockcount))),
-                new Promise((resolve, reject) => resolve(bash_cmd(conf.requests.mncount)))
-            ]).then(([blockcount, mncount]) => {
-                stage = get_stage(blockcount);
-                var coinday = 86400 / conf.blocktime / mncount * stage.mn;
-                msg.channel.send({
-                    embed: {
-                        title: conf.coin + " Earnings",
-                        color: conf.color.coininfo,
-                        fields: [
-                            {
-                                name: "ROI",
-                                value: (36500 / (stage.coll / coinday)).toFixed(2) + "% / " + (stage.coll / coinday).toFixed(2) + " days"
-                            },
-                            {
-                                name: "Daily",
-                                value: coinday.toFixed(4) + " " + conf.coin,
-                                inline: true
-                            },
-                            {
-                                name: "Weekly",
-                                value: (coinday * 7).toFixed(4) + " " + conf.coin,
-                                inline: true
-                            },
-                            {
-                                name: "Monthly",
-                                value: (coinday * 30).toFixed(4) + " " + conf.coin,
-                                inline: true
-                            },
-                            {
-                                name: "Yearly",
-                                value: (coinday * 365).toFixed(4) + " " + conf.coin,
-                                inline: true
-                            }
-                        ],
-                        timestamp: new Date()
-                    }
-                });
-
-            });
+            if (conf.cmd.earnings)
+                cmd.earnings();
             break;
         }
 
         // Explorer:
 
         case "balance": {
-            if (!conf.cmd.balance || error_noparam(2, "You need to provide an address")) break;
-            try {
-                json = JSON.parse(bash_cmd(conf.requests.balance + cmds[1]));
-                if (json["sent"] !== undefined || json["received"] !== undefined || json["balance"] !== undefined) {
-                    msg.channel.send({
-                        embed: {
-                            title: "Balance",
-                            color: conf.color.explorer,
-                            fields: [
-                                {
-                                    name: "Address",
-                                    value: cmds[1]
-                                },
-                                {
-                                    name: "Sent",
-                                    value: json["sent"] + " " + conf.coin,
-                                    inline: true
-                                },
-                                {
-                                    name: "Received",
-                                    value: json["received"] + " " + conf.coin,
-                                    inline: true
-                                },
-                                {
-                                    name: "Balance",
-                                    value: json["balance"] + " " + conf.coin,
-                                    inline: true
-                                }
-                            ],
-                            timestamp: new Date()
-                        }
-                    });
-                    break;
-                }
-            }
-            catch (e) {
-                //
-            }
-            msg.channel.send({
-                embed: {
-                    title: "Balance",
-                    color: conf.color.explorer,
-                    description: "Invalid address: " + cmds[1],
-                    timestamp: new Date()
-                }
-            });
+            if (conf.cmd.balance && !error_noparam(2, "You need to provide an address"))
+                cmd.balance(args[1]);
             break;
         }
         case "block-index": {
-            if (!conf.cmd.blockindex || error_noparam(2, "You need to provide a block number")) break;
-            block_info_message(msg, bash_cmd(conf.requests.blockhash + bash_cmd(conf.requests.blockindex + cmds[1])));
+            if (conf.cmd.blockindex && !error_noparam(2, "You need to provide a block number"))
+                cmd.block_index(args[1]);
             break;
         }
         case "block-hash": {
-            if (!conf.cmd.blockhash || error_noparam(2, "You need to provide a block hash")) break;
-            block_info_message(msg, bash_cmd(conf.requests.blockhash + cmds[1]));
+            if (conf.cmd.blockhash && !error_noparam(2, "You need to provide a block hash"))
+                cmd.block_hash(args[1]);
             break;
         }
 
         // Other:
 
         case "help": {
-            const blocked_cmd = (cmd, str) => {
-                return !cmd ? "*blocked command*" : str;
-            };
-            msg.channel.send({
-                embed: {
-                    title: "**Available commands**",
-                    color: conf.color.other,
-                    fields: [
-                        {
-                            name: "Exchanges:",
-                            value:
-                                " - **" + conf.prefix + "price" + "** : get the current price of " + conf.coin + " on every listed exchange\n"
-                        },
-                        {
-                            name: "Explorer:",
-                            value:
-                                " - **" + conf.prefix + "stats** : " + blocked_cmd(conf.cmd.stats, "get the current stats of the " + conf.coin + " blockchain") + "\n" +
-                                " - **" + conf.prefix + "earnings** : " + blocked_cmd(conf.cmd.earnings, "get the expected " + conf.coin + " earnings per masternode to get an idea of how close you are to getting a lambo") + "\n" +
-                                " - **" + conf.prefix + "balance <address>** : " + blocked_cmd(conf.cmd.balance, "show the balance, sent and received of the given address") + "\n" +
-                                " - **" + conf.prefix + "block-index <number>** : " + blocked_cmd(conf.cmd.blockindex, "show the info of the block by its index") + "\n" +
-                                " - **" + conf.prefix + "block-hash <hash>** : " + blocked_cmd(conf.cmd.blockhash, "show the info of the block by its hash") + "\n" 
-                        },
-                        {
-                            name: "Other:",
-                            value:
-                                " - **" + conf.prefix + "help** : the command that you just used\n" +
-                                " - **" + conf.prefix + "about** : know more about me :smirk:"
-                        },
-                        {
-                            name: "Admins only:",
-                            value: 
-                                " - **" + conf.prefix + "conf-get** : retrieve the bot config via dm\n" +
-                                " - **" + conf.prefix + "conf-set** : set a new config to the bot via dm\n" 
-                        }
-                    ]
-                }
-            });
+            cmd.help();
             break;
         }
         case "about": { 
-            const donate = { // don't be evil with this, please
-                "BCARD": "BQmTwK685ajop8CFY6bWVeM59rXgqZCTJb",
-                "SNO": "SZ4pQpuqq11EG7dw6qjgqSs5tGq3iTw2uZ",
-                "RESQ": "QXFszBEsRXWy2D2YFD39DUqpnBeMg64jqX"
-            };
-            msg.channel.send({
-                embed: {
-                    title: "**About**",
-                    color: conf.color.other,
-                    description: "**Author:** <@464599914962485260>\n" + 
-                        "**Source Code:** [Link](" + conf.sourcecode + ")\n" + // source link on conf just in case I change the repo
-                        "**Description:** A simple bot for " + conf.coin + " to check the current status of the currency in many ways, use **!help** to see these ways\n" + 
-                        (conf.coin in donate ? "**" + conf.coin + " Donations (to author):** " + donate[conf.coin] + "\n" : "") +
-                        "**BTC Donations (to author):** 3HE1kwgHEWvxBa38NHuQbQQrhNZ9wxjhe7" 
-                }
-            });
+            cmd.about();
             break;
         }
         case "meaning-of-life": { // easter egg
@@ -573,39 +656,13 @@ function response_msg(msg) {
         // Admin only:
 
         case "conf-get": {
-            if (error_noworthy()) break;
-            msg.channel.send("<@" + msg.author.id + "> check the dm I just sent to you :wink:");
-            msg.author.send({ files: ["./config.json"] });
+            if (!error_noworthy())
+                cmd.conf_get();
             break;
         }
         case "conf-set": {
-            if (error_noworthy()) break;
-            msg.channel.send("<@" + msg.author.id + "> check the dm I just sent to you :wink:");
-            msg.author.send("Put the config.json file here and I'll update myself with the changes, don't send any message, just drag and drop the file, you have 90 seconds to put the file or you'll have to use **!conf-set** again").then(reply => {
-                var msgcol = new Discord.MessageCollector(reply.channel, m => m.author.id === msg.author.id, { time: 90000 });
-                msgcol.on("collect", (elem, col) => {
-                    msgcol.stop("received");
-                    if (elem.attachments.array()[0]["filename"] !== "config.json") {
-                        msg.author.send("I requested a file called 'config.json', not whatever is this :expressionless: ");
-                        return;
-                    }
-                    try {
-                        var conf_res = synced_request(elem.attachments.array()[0]["url"]);
-                        conf_res = conf_res.slice(conf_res.indexOf("{"));
-                        JSON.parse(conf_res); // just check if throws
-                        fs.writeFileSync("./config.json", conf_res);
-                        conf = get_config();
-                        msg.channel.send("Config updated by <@" + msg.author.id + ">, if something goes wrong, it will be his fault :stuck_out_tongue: ");
-                    }
-                    catch (e) {
-                        msg.author.send("Something seems wrong on the json file you sent, check that everything is okay and use **!conf-set** again");
-                    }
-                });
-                msgcol.on("end", (col, reason) => {
-                    if (reason === "time")
-                        msg.author.send("Timeout, any file posted from now ill be ignored unless **!conf-set** is used again");
-                });
-            });
+            if (!error_noworthy())
+                cmd.conf_set();
             break;
         }
         
@@ -645,7 +702,7 @@ function debug_bot() {
     console.log("  blockhash value: " + (process.argv.length >= 4 ? process.argv[4] : "(none)"));
 
     console.log("\nTickers: [price][volume][ask][bid][change] (" + String.fromCharCode(8730) + " == OK / X == ERR / - == Not supported) :");
-    for (exch of conf.ticker) {
+    for (let exch of conf.ticker) {
         var exd = get_ticker(exch);
         console.log(" - " + exch + ": " + exch_check(exd.price) + exch_check(exd.volume) + exch_check(exd.ask) + exch_check(exd.bid) + exch_check(exd.change));
     }
