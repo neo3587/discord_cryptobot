@@ -94,6 +94,18 @@
     "blockindex": "curl -s http://159.69.112.3:3001/api/getblockhash?index=",
     "blockhash": "curl -s http://159.69.112.3:3001/api/getblock?hash="
   },
+  "statorder": [
+    "blockcount",
+    "mncount",
+    "supply",
+    "collateral",
+    "mnreward",
+    "powreward",
+    "posreward",
+    "locked",
+    "avgmnreward",
+    "nextstage"
+  ],
   "hidenotsupported": false,
   "sourcecode": "https://github.com/neo3587/discord_cryptobot",
   "channel": "477823123354550302",

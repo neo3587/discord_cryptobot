@@ -9,7 +9,7 @@ var client = new Discord.Client();
 /* TODO: 
  *  - Add a way to run on background (without 3rd party software if possible)
  *  - Add a way to remove the MN info
- *  - Add a way to reorder !stats
+ *  - Partial disable of !stats instead of full disable if request is missing
  *  - Add a way to calculate the earnings of POW... and maybe POS
 */ 
 
@@ -199,7 +199,7 @@ function restart_bot() {
     client.login(conf.token).then(() => console.log("Bot restart succeeded!"));
 }
 
-class CMD {
+class BotCommand {
 
     constructor(msg) {
         this.msg = msg;
@@ -253,71 +253,65 @@ class CMD {
         ]).then(([blockcount, mncount, supply]) => {
 
             var stage = get_stage(blockcount);
-            //var stg_index = conf.stages.indexOf(stage);
+            var stg_index = conf.stages.indexOf(stage);
 
-            this.msg.channel.send({
-                embed: {
-                    title: conf.coin + " Stats",
-                    color: conf.color.coininfo,
-                    fields: [
-                        {
-                            name: "Block Count",
-                            value: blockcount,
-                            inline: true
-                        },
-                        {
-                            name: "MN Count",
-                            value: mncount,
-                            inline: true
-                        },
-                        {
-                            name: "Supply",
-                            value: parseFloat(supply).toFixed(4).replace(/(\d)(?=(?:\d{3})+(?:\.|$))|(\.\d{4}?)\d*$/g, (m, s1, s2) => s2 || s1 + ',') + " " + conf.coin,
-                            inline: true
-                        },
-                        {
-                            name: "Collateral",
-                            value: stage.coll + " " + conf.coin,
-                            inline: true
-                        },
-                        {
-                            name: "MN Reward",
-                            value: stage.mn + " " + conf.coin,
-                            inline: true
-                        }
-                    ].concat(stage.pow === undefined ? [] : [
-                        {
-                            name: "POW Reward",
-                            value: stage.pow + " " + conf.coin,
-                            inline: true
-                        }
-                    ]).concat(stage.pos === undefined ? [] : [
-                        {
-                            name: "POS Reward", value:
-                                stage.pos + " " + conf.coin,
-                            inline: true
-                        }
-                    ]).concat([
-                        {
-                            name: "Locked",
-                            value: (mncount * stage.coll).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",") + " " + conf.coin + " (" + (mncount * stage.coll / supply * 100).toFixed(2) + "%)",
-                            inline: true
-                        },
-                        {
-                            name: "Avg. MN Reward",
-                            value: parseInt(mncount / (86400 / conf.blocktime)) + "d " + parseInt(mncount / (3600 / conf.blocktime) % 24) + "h " + parseInt(mncount / (60 / conf.blocktime) % 60) + "m",
-                            inline: true
-                        }
-                        //]).concat(stg_index === conf.stages.length ? [] : [ // need to do some adjustments before adding this
-                        //    {
-                        //        name: "Next Stage",
-                        //        value: parseInt((conf.stages[stg_index].block - blockcount) / (86400 / conf.blocktime)) + "d " + parseInt((conf.stages[stg_index].block - blockcount) / (3600 / conf.blocktime) % 24) + "h " + parseInt((conf.stages[stg_index].block - blockcount) / (60 / conf.blocktime) % 60) + "m",
-                        //        inline: true
-                        //    }
-                    ]),
-                    timestamp: new Date()
+            var embed = new Discord.RichEmbed();
+            embed.title = conf.coin + " Stats";
+            embed.color = conf.color.coininfo;
+            embed.timestamp = new Date();
+
+            for (let stat of conf.statorder) {
+                switch (stat) {
+                    case "blockcount": {
+                        embed.addField("Block Count", blockcount, true);
+                        break;
+                    }
+                    case "mncount": {
+                        embed.addField("MN Count", mncount, true);
+                        break;
+                    }
+                    case "supply": {
+                        embed.addField("Supply", parseFloat(supply).toFixed(4).replace(/(\d)(?=(?:\d{3})+(?:\.|$))|(\.\d{4}?)\d*$/g, (m, s1, s2) => s2 || s1 + ',') + " " + conf.coin, true);
+                        break;
+                    }
+                    case "collateral": {
+                        embed.addField("Collateral", stage.coll + " " + conf.coin, true);
+                        break;
+                    }
+                    case "mnreward": {
+                        embed.addField("MN Reward", stage.mn + " " + conf.coin, true);
+                        break;
+                    }
+                    case "powreward": {
+                        if(stage.pow !== undefined)
+                            embed.addField("POW Reward", stage.pow + " " + conf.coin, true);
+                        break;
+                    }
+                    case "posreward": {
+                        if (stage.pos !== undefined)
+                            embed.addField("POS Reward", stage.pos + " " + conf.coin, true);
+                        break;
+                    }
+                    case "locked": {
+                        embed.addField("Locked", (mncount * stage.coll).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",") + " " + conf.coin + " (" + (mncount * stage.coll / supply * 100).toFixed(2) + "%)", true);
+                        break;
+                    }
+                    case "avgmnreward": {
+                        embed.addField("Avg. MN Reward", parseInt(mncount / (86400 / conf.blocktime)) + "d " + parseInt(mncount / (3600 / conf.blocktime) % 24) + "h " + parseInt(mncount / (60 / conf.blocktime) % 60) + "m", true);
+                        break;
+                    }
+                    case "nextstage": {
+                        embed.addField("Next Stage", parseInt((conf.stages[stg_index].block - blockcount) / (86400 / conf.blocktime)) + "d " + parseInt((conf.stages[stg_index].block - blockcount) / (3600 / conf.blocktime) % 24) + "h " + parseInt((conf.stages[stg_index].block - blockcount) / (60 / conf.blocktime) % 60) + "m", true);
+                        break;
+                    }
+                    case "": {
+                        embed.addBlankField(true);
+                        break;
+                    }
                 }
-            });
+            }
+
+            this.msg.channel.send(embed);
 
         });
 
@@ -555,7 +549,7 @@ function response_msg(msg) {
         return;
 
     var args = msg.content.slice(conf.prefix.length).split(" ");
-    var cmd = new CMD(msg);
+    var cmd = new BotCommand(msg);
 
     const error_noparam = (n, descr) => {
         if (args.length >= n)

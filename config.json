@@ -70,6 +70,18 @@
     "blockindex": "CARDbuyers-cli getblockhash ",
     "blockhash": "CARDbuyers-cli getblock "
   },
+  "statorder": [
+    "blockcount",
+    "mncount",
+    "supply",
+    "collateral",
+    "mnreward",
+    "powreward",
+    "posreward",
+    "locked",
+    "avgmnreward",
+    "nextstage"
+  ],
   "hidenotsupported": false,
   "sourcecode": "https://github.com/neo3587/discord_cryptobot",
   "channel": "479496777700212746",
