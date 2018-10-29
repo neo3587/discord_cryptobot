@@ -97,8 +97,8 @@ Important note if you customize the requests:
     - "blockhash": expects to receive a string (the hash) and must return a json type string with the attributes "height": (block number), "hash": (block hash), "confirmations": (number), "size": (size of the block), "previousblockhash": (last block hash), "nextblockhash": (next block hash) and "tx": [ (list of the block transactions) ].
 
 </pre>
-- **statorder**: Order of the <b>!stats</b> values, you can even remove some of them if you don't want them to be displayed, adding a empty string "" will put a blank space as if it were a offset. Available values: 
-<pre>
+- **statorder**: Order of the <b>!stats</b> values, you can even remove some of them if you don't want them to be displayed, adding a empty string **""** will put a blank space as if it were a offset. Available values: 
+```
 "statorder": [
     "blockcount",
     "mncount",
@@ -111,7 +111,7 @@ Important note if you customize the requests:
     "avgmnreward",
     "nextstage"
   ]
-</pre>
+```
 - **hidenotsupported**: Hide the ticker values from exchanges APIs that doesn't support that feature instead of showing "Not Supported".
 - **sourcecode:** You don't need to touch this, it's just in case I change the repo in the future.
 - **channel:** The id of the channel where the bot will read and reply the commands.
