@@ -9,7 +9,6 @@ var client = new Discord.Client();
 /* TODO: 
  *  - Add a way to run on background (without 3rd party software if possible)
  *  - Add a way to remove the MN info
- *  - Partial disable of !stats instead of full disable if request is missing
  *  - Add a way to calculate the earnings of POW... and maybe POS
 */ 
 
@@ -163,10 +162,9 @@ function get_ticker(exchange) {
     return exdata;
 }
 function get_config() {
-    var str = fs.readFileSync("./config.json", "utf8"); // for some reason is adding a invalid character at the beggining that causes a throw
+    var str = fs.readFileSync("./config.json", "utf8"); // for some reason is adding a invalid character at the beginning that causes a throw
     var json = JSON.parse(str.slice(str.indexOf("{")));
     json.cmd = {
-        stats: json.requests.blockcount !== "" && json.requests.mncount !== "" && json.requests.supply !== "",
         earnings: json.requests.blockcount !== "" && json.requests.mncount !== "",
         balance: json.requests.balance !== "",
         blockindex: json.requests.blockhash !== "" && json.requests.blockindex !== "",
@@ -262,45 +260,45 @@ class BotCommand {
 
             for (let stat of conf.statorder) {
                 switch (stat) {
-                    case "blockcount": {
+                    case "blockcount": { // requires: blockcount
                         embed.addField("Block Count", blockcount, true);
                         break;
                     }
-                    case "mncount": {
+                    case "mncount": { // requires: mncount
                         embed.addField("MN Count", mncount, true);
                         break;
                     }
-                    case "supply": {
+                    case "supply": { // requires: supply
                         embed.addField("Supply", parseFloat(supply).toFixed(4).replace(/(\d)(?=(?:\d{3})+(?:\.|$))|(\.\d{4}?)\d*$/g, (m, s1, s2) => s2 || s1 + ',') + " " + conf.coin, true);
                         break;
                     }
-                    case "collateral": {
+                    case "collateral": { // requires: blockcount
                         embed.addField("Collateral", stage.coll + " " + conf.coin, true);
                         break;
                     }
-                    case "mnreward": {
+                    case "mnreward": { // requires: blockcount
                         embed.addField("MN Reward", stage.mn + " " + conf.coin, true);
                         break;
                     }
-                    case "powreward": {
+                    case "powreward": { // requires: blockcount
                         if(stage.pow !== undefined)
                             embed.addField("POW Reward", stage.pow + " " + conf.coin, true);
                         break;
                     }
-                    case "posreward": {
+                    case "posreward": { // requires: blockcount
                         if (stage.pos !== undefined)
                             embed.addField("POS Reward", stage.pos + " " + conf.coin, true);
                         break;
                     }
-                    case "locked": {
+                    case "locked": { // requires: blockcount, supply
                         embed.addField("Locked", (mncount * stage.coll).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",") + " " + conf.coin + " (" + (mncount * stage.coll / supply * 100).toFixed(2) + "%)", true);
                         break;
                     }
-                    case "avgmnreward": {
+                    case "avgmnreward": { // requires: mncount
                         embed.addField("Avg. MN Reward", parseInt(mncount / (86400 / conf.blocktime)) + "d " + parseInt(mncount / (3600 / conf.blocktime) % 24) + "h " + parseInt(mncount / (60 / conf.blocktime) % 60) + "m", true);
                         break;
                     }
-                    case "nextstage": {
+                    case "nextstage": { // requires: blockcount
                         embed.addField("Next Stage", parseInt((conf.stages[stg_index].block - blockcount) / (86400 / conf.blocktime)) + "d " + parseInt((conf.stages[stg_index].block - blockcount) / (3600 / conf.blocktime) % 24) + "h " + parseInt((conf.stages[stg_index].block - blockcount) / (60 / conf.blocktime) % 60) + "m", true);
                         break;
                     }
@@ -464,7 +462,7 @@ class BotCommand {
                     {
                         name: "Explorer:",
                         value:
-                            " - **" + conf.prefix + "stats** : " + blocked_cmd(conf.cmd.stats, "get the current stats of the " + conf.coin + " blockchain") + "\n" +
+                            " - **" + conf.prefix + "stats** : get the current stats of the " + conf.coin + " blockchain\n" +
                             " - **" + conf.prefix + "earnings** : " + blocked_cmd(conf.cmd.earnings, "get the expected " + conf.coin + " earnings per masternode to get an idea of how close you are to getting a lambo") + "\n" +
                             " - **" + conf.prefix + "balance <address>** : " + blocked_cmd(conf.cmd.balance, "show the balance, sent and received of the given address") + "\n" +
                             " - **" + conf.prefix + "block-index <number>** : " + blocked_cmd(conf.cmd.blockindex, "show the info of the block by its index") + "\n" +
@@ -588,8 +586,7 @@ function response_msg(msg) {
         // Coin Info:
 
         case "stats": {
-            if (conf.cmd.stats)
-                cmd.stats();
+            cmd.stats();
             break;
         }
         case "earnings": { 
