@@ -100,16 +100,16 @@ Important note if you customize the requests:
 - **statorder**: Order of the <b>!stats</b> values, you can even remove some of them if you don't want them to be displayed, adding a empty string **""** will put a blank space as if it were a offset. Available values: 
 ```
 "statorder": [
-    "blockcount",
-    "mncount",
-    "supply",
-    "collateral",
-    "mnreward",
-    "powreward",
-    "posreward",
-    "locked",
-    "avgmnreward",
-    "nextstage"
+    "blockcount",  // requires requests.blockcount
+    "mncount",     // requires requests.mncount
+    "supply",      // requires requests.supply
+    "collateral",  // requires requests.blockcount
+    "mnreward",    // requires requests.blockcount
+    "powreward",   // requires requests.blockcount
+    "posreward",   // requires requests.blockcount
+    "locked",      // requires requests.blockcount, requests.mncount and requests.supply
+    "avgmnreward", // requires requests.mncount
+    "nextstage"    // requires requests.blockcount
   ]
 ```
 - **hidenotsupported**: Hide the ticker values from exchanges APIs that doesn't support that feature instead of showing "Not Supported".
