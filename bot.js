@@ -9,7 +9,7 @@ var client = new Discord.Client();
 /* TODO: 
  *  - Add a way to run on background (without 3rd party software if possible)
  *  - Add a way to remove the MN info
- *  - Add a way to calculate the earnings of POW... and maybe POS
+ *  - Add a way to calculate the earnings of POW (!mining <hash> ?)... and maybe POS (!staking <coins> ?)
 */ 
 
 
@@ -165,6 +165,19 @@ function get_config() {
     var str = fs.readFileSync("./config.json", "utf8"); // for some reason is adding a invalid character at the beginning that causes a throw
     var json = JSON.parse(str.slice(str.indexOf("{")));
     json.cmd = {
+        stats: {
+            stats: json.requests.blockcount !== "" || json.requests.mncount !== "" || json.requests.supply !== "",
+            blockcount: json.requests.blockcount !== "",
+            mncount: json.requests.mncount !== "",
+            supply: json.requests.supply !== "",
+            collateral: json.requests.blockcount !== "",
+            mnreward: json.requests.blockcount !== "",
+            powreward: json.requests.blockcount !== "",
+            posreward: json.requests.blockcount !== "",
+            locked: json.requests.blockcount !== "" && json.requests.mncount !== "" && json.requests.supply !== "",
+            avgmnreward: json.requests.mncount !== "",
+            nextstage: json.requests.blockcount !== ""
+        },
         earnings: json.requests.blockcount !== "" && json.requests.mncount !== "",
         balance: json.requests.balance !== "",
         blockindex: json.requests.blockhash !== "" && json.requests.blockindex !== "",
@@ -261,45 +274,53 @@ class BotCommand {
             for (let stat of conf.statorder) {
                 switch (stat) {
                     case "blockcount": { // requires: blockcount
-                        embed.addField("Block Count", blockcount, true);
+                        if (conf.cmd.stats.blockcount)
+                            embed.addField("Block Count", blockcount, true);
                         break;
                     }
                     case "mncount": { // requires: mncount
-                        embed.addField("MN Count", mncount, true);
+                        if (conf.cmd.stats.mncount)
+                            embed.addField("MN Count", mncount, true);
                         break;
                     }
                     case "supply": { // requires: supply
-                        embed.addField("Supply", parseFloat(supply).toFixed(4).replace(/(\d)(?=(?:\d{3})+(?:\.|$))|(\.\d{4}?)\d*$/g, (m, s1, s2) => s2 || s1 + ',') + " " + conf.coin, true);
+                        if (conf.cmd.stats.supply)
+                            embed.addField("Supply", parseFloat(supply).toFixed(4).replace(/(\d)(?=(?:\d{3})+(?:\.|$))|(\.\d{4}?)\d*$/g, (m, s1, s2) => s2 || s1 + ',') + " " + conf.coin, true);
                         break;
                     }
                     case "collateral": { // requires: blockcount
-                        embed.addField("Collateral", stage.coll + " " + conf.coin, true);
+                        if (conf.cmd.stats.collateral)
+                            embed.addField("Collateral", stage.coll + " " + conf.coin, true);
                         break;
                     }
                     case "mnreward": { // requires: blockcount
-                        embed.addField("MN Reward", stage.mn + " " + conf.coin, true);
+                        if (conf.cmd.stats.mnreward)
+                            embed.addField("MN Reward", stage.mn + " " + conf.coin, true);
                         break;
                     }
                     case "powreward": { // requires: blockcount
-                        if(stage.pow !== undefined)
+                        if (stage.pow !== undefined && conf.cmd.stats.powreward)
                             embed.addField("POW Reward", stage.pow + " " + conf.coin, true);
                         break;
                     }
                     case "posreward": { // requires: blockcount
-                        if (stage.pos !== undefined)
+                        if (stage.pos !== undefined && conf.cmd.stats.posreward)
                             embed.addField("POS Reward", stage.pos + " " + conf.coin, true);
                         break;
                     }
-                    case "locked": { // requires: blockcount, supply
-                        embed.addField("Locked", (mncount * stage.coll).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",") + " " + conf.coin + " (" + (mncount * stage.coll / supply * 100).toFixed(2) + "%)", true);
+                    case "locked": { // requires: blockcount, mncount, supply
+                        if (conf.cmd.stats.locked)
+                            embed.addField("Locked", (mncount * stage.coll).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",") + " " + conf.coin + " (" + (mncount * stage.coll / supply * 100).toFixed(2) + "%)", true);
                         break;
                     }
                     case "avgmnreward": { // requires: mncount
-                        embed.addField("Avg. MN Reward", parseInt(mncount / (86400 / conf.blocktime)) + "d " + parseInt(mncount / (3600 / conf.blocktime) % 24) + "h " + parseInt(mncount / (60 / conf.blocktime) % 60) + "m", true);
+                        if (conf.cmd.stats.avgmnreward)
+                            embed.addField("Avg. MN Reward", parseInt(mncount / (86400 / conf.blocktime)) + "d " + parseInt(mncount / (3600 / conf.blocktime) % 24) + "h " + parseInt(mncount / (60 / conf.blocktime) % 60) + "m", true);
                         break;
                     }
                     case "nextstage": { // requires: blockcount
-                        embed.addField("Next Stage", parseInt((conf.stages[stg_index].block - blockcount) / (86400 / conf.blocktime)) + "d " + parseInt((conf.stages[stg_index].block - blockcount) / (3600 / conf.blocktime) % 24) + "h " + parseInt((conf.stages[stg_index].block - blockcount) / (60 / conf.blocktime) % 60) + "m", true);
+                        if (conf.cmd.stats.nextstage)
+                            embed.addField("Next Stage", parseInt((conf.stages[stg_index].block - blockcount) / (86400 / conf.blocktime)) + "d " + parseInt((conf.stages[stg_index].block - blockcount) / (3600 / conf.blocktime) % 24) + "h " + parseInt((conf.stages[stg_index].block - blockcount) / (60 / conf.blocktime) % 60) + "m", true);
                         break;
                     }
                     case "": {
@@ -462,11 +483,11 @@ class BotCommand {
                     {
                         name: "Explorer:",
                         value:
-                            " - **" + conf.prefix + "stats** : get the current stats of the " + conf.coin + " blockchain\n" +
-                            " - **" + conf.prefix + "earnings** : " + blocked_cmd(conf.cmd.earnings, "get the expected " + conf.coin + " earnings per masternode to get an idea of how close you are to getting a lambo") + "\n" +
-                            " - **" + conf.prefix + "balance <address>** : " + blocked_cmd(conf.cmd.balance, "show the balance, sent and received of the given address") + "\n" +
-                            " - **" + conf.prefix + "block-index <number>** : " + blocked_cmd(conf.cmd.blockindex, "show the info of the block by its index") + "\n" +
-                            " - **" + conf.prefix + "block-hash <hash>** : " + blocked_cmd(conf.cmd.blockhash, "show the info of the block by its hash") + "\n"
+                            " - **" + conf.prefix + "stats** : "                + blocked_cmd(conf.cmd.stats.stats, "get the current stats of the " + conf.coin + " blockchain") + "\n" +
+                            " - **" + conf.prefix + "earnings** : "             + blocked_cmd(conf.cmd.earnings,    "get the expected " + conf.coin + " earnings per masternode to get an idea of how close you are to getting a lambo") + "\n" +
+                            " - **" + conf.prefix + "balance <address>** : "    + blocked_cmd(conf.cmd.balance,     "show the balance, sent and received of the given address") + "\n" +
+                            " - **" + conf.prefix + "block-index <number>** : " + blocked_cmd(conf.cmd.blockindex,  "show the info of the block by its index") + "\n" +
+                            " - **" + conf.prefix + "block-hash <hash>** : "    + blocked_cmd(conf.cmd.blockhash,   "show the info of the block by its hash") + "\n"
                     },
                     {
                         name: "Other:",
@@ -586,7 +607,8 @@ function response_msg(msg) {
         // Coin Info:
 
         case "stats": {
-            cmd.stats();
+            if (conf.cmd.stats.stats)
+                cmd.stats();
             break;
         }
         case "earnings": { 
