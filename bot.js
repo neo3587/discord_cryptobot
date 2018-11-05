@@ -8,7 +8,6 @@ var client = new Discord.Client();
 
 /* TODO: 
  *  - Add a way to run on background (without 3rd party software if possible)
- *  - Add a way to remove the MN info
  *  - Add a way to calculate the earnings of POW (!mining <hash> ?)... and maybe POS (!staking <coins> ?)
 */ 
 
@@ -54,103 +53,103 @@ function get_ticker(exchange) {
         var tmp;
         switch (exchange.toLowerCase()) {
             case "cryptobridge": {
-                exdata.fillj(js_request("https://api.crypto-bridge.org/api/v1/ticker/{COIN}_BTC"), "last", "volume", "bid", "ask", "percentChange");
                 exdata.link = rg_replace("https://wallet.crypto-bridge.org/market/BRIDGE.{COIN}_BRIDGE.BTC");
+                exdata.fillj(js_request("https://api.crypto-bridge.org/api/v1/ticker/{COIN}_BTC"), "last", "volume", "bid", "ask", "percentChange");
                 break;
             }
             case "crex24": {
-                exdata.fillj(js_request("https://api.crex24.com/v2/public/tickers?instrument={COIN}-BTC")[0], "last", "volumeInBtc", "bid", "ask", "percentChange");
                 exdata.link = rg_replace("https://crex24.com/exchange/{COIN}-BTC");
+                exdata.fillj(js_request("https://api.crex24.com/v2/public/tickers?instrument={COIN}-BTC")[0], "last", "volumeInBtc", "bid", "ask", "percentChange");
                 break;
             }
             case "coinexchange": {
-                exdata.fillj(js_request("https://www.coinexchange.io/api/v1/getmarketsummary?market_id=" + conf.special_ticker.CoinExchange)["result"], "LastPrice", "BTCVolume", "BidPrice", "AskPrice", "Change");
                 exdata.link = rg_replace("https://www.coinexchange.io/market/{COIN}/BTC");
+                exdata.fillj(js_request("https://www.coinexchange.io/api/v1/getmarketsummary?market_id=" + conf.special_ticker.CoinExchange)["result"], "LastPrice", "BTCVolume", "BidPrice", "AskPrice", "Change");
                 break;
             }
             case "graviex": {
-                exdata.fillj(js_request("https://graviex.net:443//api/v2/tickers/{COIN}btc.json", true)["ticker"], "last", "volbtc", "buy", "sell", "change");
                 exdata.link = rg_replace("https://graviex.net/markets/{COIN}btc", true);
+                exdata.fillj(js_request("https://graviex.net:443//api/v2/tickers/{COIN}btc.json", true)["ticker"], "last", "volbtc", "buy", "sell", "change");
                 break;
             }
             case "escodex": {
-                exdata.fillj(js_request("http://labs.escodex.com/api/ticker").find(x => x.base === "BTC" && x.quote === conf.coin.toUpperCase()), "latest", "base_volume", "lowest_ask", "highest_bid", "percent_change");
                 exdata.link = rg_replace("https://wallet.escodex.com/market/ESCODEX.{COIN}_ESCODEX.BTC");
+                exdata.fillj(js_request("http://labs.escodex.com/api/ticker").find(x => x.base === "BTC" && x.quote === conf.coin.toUpperCase()), "latest", "base_volume", "lowest_ask", "highest_bid", "percent_change");
                 break;
             }
             case "cryptopia": {
-                exdata.fillj(js_request("https://www.cryptopia.co.nz/api/GetMarket/{COIN}_BTC")["Data"], "LastPrice", "BaseVolume", "AskPrice", "BidPrice", "Change");
                 exdata.link = rg_replace("https://www.cryptopia.co.nz/Exchange/?market={COIN}_BTC");
+                exdata.fillj(js_request("https://www.cryptopia.co.nz/api/GetMarket/{COIN}_BTC")["Data"], "LastPrice", "BaseVolume", "AskPrice", "BidPrice", "Change");
                 break;
             }
             case "stex": {
+                exdata.link = rg_replace("https://app.stex.com/en/basic-trade/BTC?currency2={COIN}");
                 tmp = js_request("https://app.stex.com/api2/ticker").find(x => x.market_name === rg_replace("{COIN}_BTC"));
                 exdata.fill(tmp["last"], (tmp["last"] + tmp["lastDayAgo"]) / 2 * tmp["volume"], tmp["ask"], tmp["bid"], tmp["last"] / tmp["lastDayAgo"]); // volume and change not 100% accurate
-                exdata.link = rg_replace("https://app.stex.com/en/basic-trade/BTC?currency2={COIN}");
                 break;
             }
             case "c-cex": {
+                exdata.link = rg_replace("https://c-cex.com/?p={COIN}-btc", true);
                 tmp = js_request("https://c-cex.com/t/{COIN}-btc.json", true)["ticker"];
                 exdata.fill(tmp["lastprice"], js_request("https://c-cex.com/t/volume_btc.json")["ticker"][conf.coin.toLowerCase()]["vol"], tmp["buy"], tmp["sell"], undefined);
-                exdata.link = rg_replace("https://c-cex.com/?p={COIN}-btc", true);
                 break;
             }
             case "hitbtc": {
-                exdata.fillj(js_request("https://api.hitbtc.com/api/2/public/ticker/{COIN}BTC"), "last", "volumeQuote", "ask", "bid", ""); // change not supported
                 exdata.link = rg_replace("https://hitbtc.com/{COIN}-to-BTC");
+                exdata.fillj(js_request("https://api.hitbtc.com/api/2/public/ticker/{COIN}BTC"), "last", "volumeQuote", "ask", "bid", ""); // change not supported
                 break;
             }
             case "yobit": {
-                exdata.fillj(js_request("https://yobit.net/api/2/{COIN}_btc/ticker", true)["ticker"], "last", "vol", "buy", "sell", ""); // change not supported
                 exdata.link = rg_replace("https://yobit.net/en/trade/{COIN}/BTC");
+                exdata.fillj(js_request("https://yobit.net/api/2/{COIN}_btc/ticker", true)["ticker"], "last", "vol", "buy", "sell", ""); // change not supported
                 break;
             }
             case "bittrex": {
+                exdata.link = rg_replace("https://www.bittrex.com/Market/Index?MarketName=BTC-{COIN}");
                 tmp = js_request("https://bittrex.com/api/v1.1/public/getmarketsummary?market=btc-{COIN}", true)["result"][0];
                 exdata.fill(tmp["Last"], tmp["BaseVolume"], tmp["Bid"], tmp["Ask"], tmp["Last"] / tmp["PrevDay"]); // change not 100% accurate
-                exdata.link = rg_replace("https://www.bittrex.com/Market/Index?MarketName=BTC-{COIN}");
                 break;
             }
             case "southxchange": {
-                exdata.fillj(js_request("https://www.southxchange.com/api/price/{COIN}/BTC"), "Last", "Volume24Hr", "Bid", "Ask", "Variation24Hr");
                 exdata.link = rg_replace("https://www.southxchange.com/Market/Book/{COIN}/BTC");
+                exdata.fillj(js_request("https://www.southxchange.com/api/price/{COIN}/BTC"), "Last", "Volume24Hr", "Bid", "Ask", "Variation24Hr");
                 break;
             }
             case "exrates": {
-                exdata.fillj(js_request("https://exrates.me/openapi/v1/public/ticker?currency_pair={COIN}_btc", true)[0], "last", "quoteVolume", "highestBid", "lowestAsk", "percentChange");
                 exdata.link = "https://exrates.me/dashboard"; // no filter
+                exdata.fillj(js_request("https://exrates.me/openapi/v1/public/ticker?currency_pair={COIN}_btc", true)[0], "last", "quoteVolume", "highestBid", "lowestAsk", "percentChange");
                 break;
             }
             case "binance": {
-                exdata.fillj(js_request("https://api.binance.com/api/v1/ticker/24hr?symbol={COIN}BTC"), "lastPrice", "quoteVolume", "bidPrice", "askPrice", "priceChangePercent");
                 exdata.link = rg_replace("https://www.binance.com/es/trade/{COIN}_BTC"); 
+                exdata.fillj(js_request("https://api.binance.com/api/v1/ticker/24hr?symbol={COIN}BTC"), "lastPrice", "quoteVolume", "bidPrice", "askPrice", "priceChangePercent");
                 break;
             }
             case "bitfinex": {
+                exdata.link = rg_replace("https://www.bitfinex.com/t/{COIN}:BTC");
                 tmp = js_request("https://api.bitfinex.com/v2/ticker/t{COIN}BTC"); // [bid, bidsize, ask, asksize, daychg, daychg%, last, vol, high, low]
                 exdata.fill(tmp[6], (tmp[8] + tmp[9]) / 2 * tmp[7], tmp[0], tmp[2], tmp[5]); // volume not 100% accurate
-                exdata.link = rg_replace("https://www.bitfinex.com/t/{COIN}:BTC");
                 break;
             }
             case "moondex": {
-                exdata.fillj(js_request("https://data.moondex.io/ticker/{COIN}_BTC"), "latest", "volume", "highestBid", "lowestAsk", "percentChange");
                 exdata.link = rg_replace("https://beta.moondex.io/market/MOONDEX.{COIN}_MOONDEX.BTC");
+                exdata.fillj(js_request("https://data.moondex.io/ticker/{COIN}_BTC"), "latest", "volume", "highestBid", "lowestAsk", "percentChange");
                 break;
             }
             case "coinex": {
+                exdata.link = rg_replace("https://www.coinex.com/exchange?currency=btc&dest={COIN}#limit", true);
                 tmp = js_request("https://api.coinex.com/v1/market/ticker?market={COIN}BTC")["data"]["ticker"];
                 exdata.fill(tmp["last"], (parseFloat(tmp["high"]) + parseFloat(tmp["low"])) / 2 * tmp["vol"], tmp["buy"], tmp["sell"], tmp["last"] / tmp["open"]); // volume not 100% accurate
-                exdata.link = rg_replace("https://www.coinex.com/exchange?currency=btc&dest={COIN}#limit", true);
                 break;
             }
             case "p2pb2b": {
-                exdata.fillj(js_request("https://p2pb2b.io/api/v1/public/ticker?market={COIN}_BTC")["result"], "last", "deal", "bid", "ask", "change");
                 exdata.link = rg_replace("https://p2pb2b.io/trade/{COIN}_BTC");
+                exdata.fillj(js_request("https://p2pb2b.io/api/v1/public/ticker?market={COIN}_BTC")["result"], "last", "deal", "bid", "ask", "change");
                 break;
             }
             case "coinsbit": {
-                exdata.fillj(js_request("https://coinsbit.io/api/v1/public/ticker?market={COIN}_BTC")["result"], "last", "deal", "bid", "ask", "change");
                 exdata.link = rg_replace("https://coinsbit.io/trade/{COIN}_BTC");
+                exdata.fillj(js_request("https://coinsbit.io/api/v1/public/ticker?market={COIN}_BTC")["result"], "last", "deal", "bid", "ask", "change");
                 break;
             }
         }
@@ -181,7 +180,8 @@ function get_config() {
         earnings: json.requests.blockcount !== "" && json.requests.mncount !== "",
         balance: json.requests.balance !== "",
         blockindex: json.requests.blockhash !== "" && json.requests.blockindex !== "",
-        blockhash: json.requests.blockhash !== ""
+        blockhash: json.requests.blockhash !== "",
+        mining: json.requests.hashrate !== ""
     };
     return json;
 }
@@ -380,6 +380,47 @@ class BotCommand {
         });
 
     }
+    mining(hr) {
+
+        Promise.all([
+            new Promise((resolve, reject) => resolve(bash_cmd(conf.requests.blockcount))),
+            new Promise((resolve, reject) => resolve(bash_cmd(conf.requests.hashrate)))
+        ]).then(([blockcount, total_hr]) => {
+            var stage = get_stage(blockcount);
+            var coinday = 86400 / conf.blocktime * stage.pow * hr / total_hr;
+            this.msg.channel.send({
+                embed: {
+                    title: conf.coin + " Mining (" + hr + " hash/s)",
+                    color: conf.color.coininfo,
+                    description: stage.pow === undefined ? "POW disabled in the current coin stage" : "",
+                    fields: stage.pow === undefined ? [] : [
+                        {
+                            name: "Daily",
+                            value: coinday.toFixed(4) + " " + conf.coin,
+                            inline: true
+                        },
+                        {
+                            name: "Weekly",
+                            value: (coinday * 7).toFixed(4) + " " + conf.coin,
+                            inline: true
+                        },
+                        {
+                            name: "Monthly",
+                            value: (coinday * 30).toFixed(4) + " " + conf.coin,
+                            inline: true
+                        },
+                        {
+                            name: "Yearly",
+                            value: (coinday * 365).toFixed(4) + " " + conf.coin,
+                            inline: true
+                        }
+                    ],
+                    timestamp: new Date()
+                }
+            });
+        });
+        
+    }
 
     balance(addr) {
 
@@ -481,10 +522,14 @@ class BotCommand {
                             " - **" + conf.prefix + "price" + "** : get the current price of " + conf.coin + " on every listed exchange\n"
                     },
                     {
-                        name: "Explorer:",
+                        name: "Coin Info:",
                         value:
-                            " - **" + conf.prefix + "stats** : "                + blocked_cmd(conf.cmd.stats.stats, "get the current stats of the " + conf.coin + " blockchain") + "\n" +
-                            " - **" + conf.prefix + "earnings** : "             + blocked_cmd(conf.cmd.earnings,    "get the expected " + conf.coin + " earnings per masternode to get an idea of how close you are to getting a lambo") + "\n" +
+                            " - **" + conf.prefix + "stats** : " + blocked_cmd(conf.cmd.stats.stats, "get the current stats of the " + conf.coin + " blockchain") + "\n" +
+                            " - **" + conf.prefix + "earnings** : " + blocked_cmd(conf.cmd.earnings, "get the expected " + conf.coin + " earnings per masternode to get an idea of how close you are to getting a lambo") + "\n"
+                    },
+                    {
+                        name: "Explorer",
+                        value:
                             " - **" + conf.prefix + "balance <address>** : "    + blocked_cmd(conf.cmd.balance,     "show the balance, sent and received of the given address") + "\n" +
                             " - **" + conf.prefix + "block-index <number>** : " + blocked_cmd(conf.cmd.blockindex,  "show the info of the block by its index") + "\n" +
                             " - **" + conf.prefix + "block-hash <hash>** : "    + blocked_cmd(conf.cmd.blockhash,   "show the info of the block by its hash") + "\n"
@@ -616,6 +661,11 @@ function response_msg(msg) {
                 cmd.earnings();
             break;
         }
+        //case "mining": { // needs some testing before adding this
+        //    if (conf.cmd.mining && !error_noparam(2, "You need to provide amount of hashrate"))
+        //        cmd.mining(args[1]);
+        //    break;
+        //}
 
         // Explorer:
 
