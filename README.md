@@ -1,6 +1,6 @@
 # Discord CryptoBot
 
-A discord bot originally made for BCARD, and reworked to work with SNO and RESQ, it can be easily adapted for any other currency.
+A discord bot originally made for BCARD, and reworked to work with RESQ, it can be easily adapted for any other currency.
 
 # How to install
 
@@ -78,24 +78,25 @@ You'll have to modify the "config.json" file to make it fit with your cryptocurr
     }
 ]
 ```
-- **requests:** The bash commands and/or urls used to get the data for **!stats**, **!earnings**, **!balance**, **!block-index** and **!block-hash**. Leaving a empty string will block the bot commands that makes use of the data. It's expected to use RPC commands and explorer urls, but you can customize them to retrieve the data from other sources. Example:
+- **requests:** The bash commands and/or urls used to get the data for **!stats**, **!earnings**, **!balance**, **!block-index**, **!block-hash** and **!mining**. Leaving a empty string will block the bot commands that makes use of the data. It's expected to use RPC commands and explorer urls, but you can customize them to retrieve the data from other sources (Example: "blockcount": "customProgramToGetBlockCount.exe"), example of typical requests:
 <pre>
 "requests": {
-    "blockcount": "mywalletname-cli getblockcount",    // change for: "curl http://mycoinexplorer.com/api/getblockcount" 
-    "mncount":    "mywalletname-cli masternode count", // change for: "customprogramMNcount.exe" 
-    "supply":     "curl -s http://mycoinexplorer.com/ext/getmoneysupply", // change for: "customprogram supply"
-    "balance":    "curl -s http://mycoinexplorer.com/ext/getaddress/",    // change for: "" and <b>!balance</b> will be blocked
-    "blockindex": "mywalletname-cli getblockhash ",    // <b>!!!</b> trailing space added on purpose or won't work, remove it only if using a url, same for "balance" and "blockhash"
-    "blockhash":  "mywalletname-cli getblock "         // etc...
+    "blockcount": "mywalletname-cli getblockcount",
+    "mncount":    "mywalletname-cli masternode count | jq .enabled", // some wallets or urls return a json and others return a number, use jq (<a href= "https://stedolan.github.io/jq/">https://stedolan.github.io/jq/</a>) if it returns a json.
+    "supply":     "curl -s http://mycoinexplorer.com/ext/getmoneysupply", 
+    "balance":    "curl -s http://mycoinexplorer.com/ext/getaddress/",    
+    "blockindex": "mywalletname-cli getblockhash ",    // <b>!!!</b> trailing space added on purpose or won't work, remove it only if using a url, same for "balance" and "blockhash".
+    "blockhash":  "mywalletname-cli getblock ",
+    "hashrate": "curl -s http://mycoinexplorer/api/getnetworkhashps"   
 }
 Important note if you customize the requests: 
     - "blockcount" must return a string convertible into a number.
-    - "mncount" must return a string convertible into a number (some wallets returns a json, you can use "mywalletname-cli masternode count | jq .attributename" on the request string to give it the number, same works for urls, get jq here: <a href= "https://stedolan.github.io/jq/">https://stedolan.github.io/jq/</a>).
+    - "mncount" must return a string convertible into a number.
     - "supply" must return a string convertible into a number.
     - "balance" expects to receive a string (the address) and must return a json type string with a number or string in three attributes called "sent", "received" and "balance".
     - "blockindex": expects to receive a string convertible into a number and must return a string that indicates the block hash of the given block number.
     - "blockhash": expects to receive a string (the hash) and must return a json type string with the attributes "height": (block number), "hash": (block hash), "confirmations": (number), "size": (size of the block), "previousblockhash": (last block hash), "nextblockhash": (next block hash) and "tx": [ (list of the block transactions) ].
-
+    - "hashrate": expects to receive a string convertible into a number.
 </pre>
 - **statorder**: Order of the <b>!stats</b> values, you can even remove some of them if you don't want them to be displayed, adding a empty string **""** will put a blank space as if it were a offset. Available values: 
 ```
@@ -162,7 +163,6 @@ NOTE: The non-supported or not 100% accurate features are due to the exchange AP
 ```
 BTC Donations:   3HE1kwgHEWvxBa38NHuQbQQrhNZ9wxjhe7
 BCARD Donations: BQmTwK685ajop8CFY6bWVeM59rXgqZCTJb
-SNO Donations:   SZ4pQpuqq11EG7dw6qjgqSs5tGq3iTw2uZ
 RESQ Donations:  QhsqRbQVNHCAe93puAnHUX96jsmMxtpBNh
 ```
 
