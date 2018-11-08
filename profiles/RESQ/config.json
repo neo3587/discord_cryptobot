@@ -92,7 +92,8 @@
     "supply": "curl -s http://159.69.112.3:3001/ext/getmoneysupply",
     "balance": "curl -s http://159.69.112.3:3001/ext/getaddress/",
     "blockindex": "curl -s http://159.69.112.3:3001/api/getblockhash?index=",
-    "blockhash": "curl -s http://159.69.112.3:3001/api/getblock?hash="
+    "blockhash": "curl -s http://159.69.112.3:3001/api/getblock?hash=",
+    "hashrate": "curl -s http://159.69.112.3:3001/api/getnetworkhashps"
   },
   "statorder": [
     "blockcount",
