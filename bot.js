@@ -7,8 +7,8 @@ var conf = get_config();
 var client = new Discord.Client();
 
 /* TODO: 
+ *  - Add optional BTC and/or USD earnings (average of all markets) on !earnings and !mining
  *  - Add a way to run on background (without 3rd party software if possible)
- *  - Add a way to calculate the earnings of POW (!mining <hash> ?)... and maybe POS (!staking <coins> ?)
 */ 
 
 
@@ -380,45 +380,77 @@ class BotCommand {
         });
 
     }
-    mining(hr) {
+    mining(hr, mult) {
 
-        Promise.all([
-            new Promise((resolve, reject) => resolve(bash_cmd(conf.requests.blockcount))),
-            new Promise((resolve, reject) => resolve(bash_cmd(conf.requests.hashrate)))
-        ]).then(([blockcount, total_hr]) => {
-            var stage = get_stage(blockcount);
-            var coinday = 86400 / conf.blocktime * stage.pow * hr / total_hr;
+        let letter = "";
+
+        const calc_multiplier = () => {
+            if (mult !== undefined)
+                switch (mult.toUpperCase()) {
+                    case "K": case "KH": case "KHS": case "KH/S": case "KHASH": case "KHASHS": case "KHASH/S":
+                        letter = "K";
+                        return hr * 1000;
+                    case "M": case "MH": case "MHS": case "MH/S": case "MHASH": case "MHASHS": case "MHASH/S":
+                        letter = "M";
+                        return hr * 1000 * 1000;
+                    case "G": case "GH": case "GHS": case "GH/S": case "GHASH": case "GHASHS": case "GHASH/S":
+                        letter = "G";
+                        return hr * 1000 * 1000 * 1000;
+                    case "T": case "TH": case "THS": case "TH/S": case "THASH": case "THASHS": case "THASH/S":
+                        letter = "T";
+                        return hr * 1000 * 1000 * 1000 * 1000;
+                }
+            return hr;
+        };
+
+        if (/^[0-9.\n]+$/.test(hr)) {
+            Promise.all([
+                new Promise((resolve, reject) => resolve(bash_cmd(conf.requests.blockcount))),
+                new Promise((resolve, reject) => resolve(bash_cmd(conf.requests.hashrate)))
+            ]).then(([blockcount, total_hr]) => {
+                let stage = get_stage(blockcount);
+                let coinday = 86400 / conf.blocktime * stage.pow * calc_multiplier() / total_hr;
+                this.msg.channel.send({
+                    embed: {
+                        title: conf.coin + " Mining (" + hr + " " + letter + "H/s)",
+                        color: conf.color.coininfo,
+                        description: stage.pow === undefined ? "POW disabled in the current coin stage" : "",
+                        fields: stage.pow === undefined ? [] : [
+                            {
+                                name: "Daily",
+                                value: coinday.toFixed(4) + " " + conf.coin,
+                                inline: true
+                            },
+                            {
+                                name: "Weekly",
+                                value: (coinday * 7).toFixed(4) + " " + conf.coin,
+                                inline: true
+                            },
+                            {
+                                name: "Monthly",
+                                value: (coinday * 30).toFixed(4) + " " + conf.coin,
+                                inline: true
+                            },
+                            {
+                                name: "Yearly",
+                                value: (coinday * 365).toFixed(4) + " " + conf.coin,
+                                inline: true
+                            }
+                        ],
+                        timestamp: new Date()
+                    }
+                });
+            });
+        }
+        else {
             this.msg.channel.send({
                 embed: {
-                    title: conf.coin + " Mining (" + hr + " hash/s)",
+                    title: conf.coin + " Mining ( ? H/s)",
                     color: conf.color.coininfo,
-                    description: stage.pow === undefined ? "POW disabled in the current coin stage" : "",
-                    fields: stage.pow === undefined ? [] : [
-                        {
-                            name: "Daily",
-                            value: coinday.toFixed(4) + " " + conf.coin,
-                            inline: true
-                        },
-                        {
-                            name: "Weekly",
-                            value: (coinday * 7).toFixed(4) + " " + conf.coin,
-                            inline: true
-                        },
-                        {
-                            name: "Monthly",
-                            value: (coinday * 30).toFixed(4) + " " + conf.coin,
-                            inline: true
-                        },
-                        {
-                            name: "Yearly",
-                            value: (coinday * 365).toFixed(4) + " " + conf.coin,
-                            inline: true
-                        }
-                    ],
-                    timestamp: new Date()
+                    description: "Invalid hashrate"
                 }
             });
-        });
+        }
         
     }
 
@@ -519,20 +551,21 @@ class BotCommand {
                     {
                         name: "Exchanges:",
                         value:
-                            " - **" + conf.prefix + "price" + "** : get the current price of " + conf.coin + " on every listed exchange\n"
+                            " - **" + conf.prefix + "price" + "** : get the current price of " + conf.coin + " on every listed exchange"
                     },
                     {
                         name: "Coin Info:",
                         value:
-                            " - **" + conf.prefix + "stats** : " + blocked_cmd(conf.cmd.stats.stats, "get the current stats of the " + conf.coin + " blockchain") + "\n" +
-                            " - **" + conf.prefix + "earnings** : " + blocked_cmd(conf.cmd.earnings, "get the expected " + conf.coin + " earnings per masternode to get an idea of how close you are to getting a lambo") + "\n"
+                            " - **" + conf.prefix + "stats** : "    + blocked_cmd(conf.cmd.stats.stats, "get the current stats of the " + conf.coin + " blockchain") + "\n" +
+                            " - **" + conf.prefix + "earnings** : " + blocked_cmd(conf.cmd.earnings,    "get the expected " + conf.coin + " earnings per masternode to get an idea of how close you are to getting a lambo") + "\n" +
+                            " - **" + conf.prefix + "mining <hashrate> [KHash / MHash / GHash / THash]** : " + blocked_cmd(conf.cmd.earnings, "get the expected " + conf.coin + " earnings with the given hashrate, aditionally you can put the hashrate multiplier (KHash, MHash, ...)")
                     },
                     {
                         name: "Explorer",
                         value:
-                            " - **" + conf.prefix + "balance <address>** : "    + blocked_cmd(conf.cmd.balance,     "show the balance, sent and received of the given address") + "\n" +
-                            " - **" + conf.prefix + "block-index <number>** : " + blocked_cmd(conf.cmd.blockindex,  "show the info of the block by its index") + "\n" +
-                            " - **" + conf.prefix + "block-hash <hash>** : "    + blocked_cmd(conf.cmd.blockhash,   "show the info of the block by its hash") + "\n"
+                            " - **" + conf.prefix + "balance <address>** : "    + blocked_cmd(conf.cmd.balance,    "show the balance, sent and received of the given address") + "\n" +
+                            " - **" + conf.prefix + "block-index <number>** : " + blocked_cmd(conf.cmd.blockindex, "show the info of the block by its index") + "\n" +
+                            " - **" + conf.prefix + "block-hash <hash>** : "    + blocked_cmd(conf.cmd.blockhash,  "show the info of the block by its hash")
                     },
                     {
                         name: "Other:",
@@ -544,7 +577,7 @@ class BotCommand {
                         name: "Admins only:",
                         value:
                             " - **" + conf.prefix + "conf-get** : retrieve the bot config via dm\n" +
-                            " - **" + conf.prefix + "conf-set** : set a new config to the bot via dm\n"
+                            " - **" + conf.prefix + "conf-set** : set a new config to the bot via dm"
                     }
                 ]
             }
@@ -661,11 +694,11 @@ function response_msg(msg) {
                 cmd.earnings();
             break;
         }
-        //case "mining": { // needs some testing before adding this
-        //    if (conf.cmd.mining && !error_noparam(2, "You need to provide amount of hashrate"))
-        //        cmd.mining(args[1]);
-        //    break;
-        //}
+        case "mining": { 
+            if (conf.cmd.mining && !error_noparam(2, "You need to provide amount of hashrate"))
+                cmd.mining(args[1], args[2]);
+            break;
+        }
 
         // Explorer:
 
