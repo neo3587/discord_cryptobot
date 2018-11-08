@@ -8,7 +8,7 @@ First, you can use this guide to crate the bot: https://www.digitaltrends.com/ga
 
 The bot runs on Node.js, version 8.x or higher is recommended, it can be obtained here: https://nodejs.org/en/ 
 
-The bot can run on any machine, but the commands **!stats**, **!earnings**, **!block-index** and **!block-hash** will only work if there's a wallet that accepts RPC commands (per example the typical masternode on a Linux machine) or you make your way with urls or customized programs.
+The bot can run on any machine, but the commands **!stats**, **!earnings**, **!block-index**, **!block-hash** and **!mining** will only work if there's a wallet that accepts RPC commands (per example the typical masternode on a Linux machine) or you make your way with urls or customized programs.
 In case of using a Linux machine for running the bot, you can install Node.js with these 2 commands:
 ```
 curl -sL https://deb.nodesource.com/setup_8.x | sudo -E bash -
@@ -34,6 +34,7 @@ node bot.js
 - **!balance ```<address>```:** Shows the sent, received and current balance of the given address.
 - **!block-index ```<number>```:** Shows the block stats of the given block number.
 - **!block-hash ```<hash>```:** Shows the block stats of the given block hash.
+- **!mining ```<number>``` ```[K/M/G/T]```:** Shows the expected earnings with the given hashrate, optionally you can use K,M,G or T to indicate the multiplier, example: ```!mining 500``` => asks for 500 H/s, ```!mining 20 M``` => asks for 20 MH/s, etc.
 - **!help:** Shows every available command.
 - **!about:** Shows the bot info.
 - **!conf-get:** Receive a dm with the config file, requires devs permissions (see **Bot configuration**).
@@ -87,7 +88,7 @@ You'll have to modify the "config.json" file to make it fit with your cryptocurr
     "balance":    "curl -s http://mycoinexplorer.com/ext/getaddress/",    
     "blockindex": "mywalletname-cli getblockhash ",    // <b>!!!</b> trailing space added on purpose or won't work, remove it only if using a url, same for "balance" and "blockhash".
     "blockhash":  "mywalletname-cli getblock ",
-    "hashrate": "curl -s http://mycoinexplorer/api/getnetworkhashps"   
+    "hashrate": "curl -s http://mycoinexplorer.com/api/getnetworkhashps"   
 }
 Important note if you customize the requests: 
     - "blockcount" must return a string convertible into a number.
