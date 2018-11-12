@@ -157,6 +157,7 @@ node bot.js debug QXFszBEsRXWy2D2YFD39DUqpnBeMg64jqX ae3b127dc677c9f5d6ca24232da
 - CoinsBit
 
 NOTE: The non-supported or not 100% accurate features are due to the exchange API.
+
 NOTE 2: Feel free to ask for adding support to a concrete exchange.
 
 # Additional
