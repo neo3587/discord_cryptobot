@@ -241,10 +241,11 @@ function restart_bot() {
         console.log("Restarting bot in " + i + " seconds..."); // just to avoid constant reset in case of constant crash cause no internet
         Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 1000);
     }
-    //client.destroy(); // need to check 
-    client = new Discord.Client();
-    client.on("message", response_msg);
-    client.login(conf.token).then(() => console.log("Bot restart succeeded!"));
+    client.destroy().then(() => {
+        client = new Discord.Client();
+        client.on("message", response_msg);
+        client.login(conf.token).then(() => console.log("Bot restart succeeded!"));
+    });
 }
 
 class BotCommand {
@@ -711,7 +712,7 @@ function response_msg(msg) {
     };
 
     switch (args[0]) {
-        
+
         // Exchanges: 
 
         case "price": {
