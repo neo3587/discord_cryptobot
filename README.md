@@ -124,16 +124,6 @@ Important note if you customize the requests:
 
 NOTE: The token on config.json is just an example, not the real one (for obvious reasons), use yours to work with your discord server.
 
-# Bot debug
-
-Run the bot by adding debug to check if the configured tickers and requests works:
-```
-node bot.js debug <valid_address_to_check_balance> <valid_hash_to_check_blockhash>
-```
-Per example with the RESQ profile: 
-```
-node bot.js debug QXFszBEsRXWy2D2YFD39DUqpnBeMg64jqX ae3b127dc677c9f5d6ca24232da93776f3d2d63f11f00841ac07300f5e7af90b
-```
 # Currently supported exchanges
 
 - CryptoBridge
