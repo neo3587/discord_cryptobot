@@ -41,124 +41,160 @@ class ExchangeData {
 
 function get_ticker(exchange) {
 
-    var exdata = new ExchangeData(exchange);
-    const rg_replace = (str, lowercase = false) => {
-        return str.replace("{COIN}", lowercase ? conf.coin.toLowerCase() : conf.coin.toUpperCase());
-    };
-    const js_request = (url, lowercase = false) => {
-        return JSON.parse(synced_request(rg_replace(url, lowercase)));
-    };
+    return new Promise((resolve, reject) => {
 
-    try {
+        const rg_replace = (str, lowercase = false) => {
+            return str.replace("{COIN}", lowercase ? conf.coin.toLowerCase() : conf.coin.toUpperCase());
+        };
+        const js_request = (url, fn, lowercase = false) => { 
+            let req = new XMLHttpRequest();
+            req.open("GET", rg_replace(url, lowercase));
+            req.onreadystatechange = () => {
+                if (req.readyState === 4) {
+                    if (req.status === 200) {
+                        try {
+                            fn(JSON.parse(req.responseText));
+                        }
+                        catch (e) {
+                            //
+                        }
+                    }
+                    resolve(exdata);
+                }
+            };
+            req.send();
+        };
+
+        var exdata = new ExchangeData(exchange);
         var tmp;
+
         switch (exchange.toLowerCase()) {
             case "cryptobridge": {
                 exdata.link = rg_replace("https://wallet.crypto-bridge.org/market/BRIDGE.{COIN}_BRIDGE.BTC");
-                exdata.fillj(js_request("https://api.crypto-bridge.org/api/v1/ticker/{COIN}_BTC"), "last", "volume", "bid", "ask", "percentChange");
+                js_request("https://api.crypto-bridge.org/api/v1/ticker/{COIN}_BTC", res => exdata.fillj(res, "last", "volume", "bid", "ask", "percentChange"));
                 break;
             }
             case "crex24": {
                 exdata.link = rg_replace("https://crex24.com/exchange/{COIN}-BTC");
-                exdata.fillj(js_request("https://api.crex24.com/v2/public/tickers?instrument={COIN}-BTC")[0], "last", "volumeInBtc", "bid", "ask", "percentChange");
+                js_request("https://api.crex24.com/v2/public/tickers?instrument={COIN}-BTC", res => exdata.fillj(res[0], "last", "volumeInBtc", "bid", "ask", "percentChange"));
                 break;
             }
             case "coinexchange": {
                 exdata.link = rg_replace("https://www.coinexchange.io/market/{COIN}/BTC");
-                exdata.fillj(js_request("https://www.coinexchange.io/api/v1/getmarketsummary?market_id=" + conf.special_ticker.CoinExchange)["result"], "LastPrice", "BTCVolume", "BidPrice", "AskPrice", "Change");
+                js_request("https://www.coinexchange.io/api/v1/getmarketsummary?market_id=" + conf.special_ticker.CoinExchange, res => exdata.fillj(res["result"], "LastPrice", "BTCVolume", "BidPrice", "AskPrice", "Change"));
                 break;
             }
             case "graviex": {
                 exdata.link = rg_replace("https://graviex.net/markets/{COIN}btc", true);
-                exdata.fillj(js_request("https://graviex.net:443//api/v2/tickers/{COIN}btc.json", true)["ticker"], "last", "volbtc", "buy", "sell", "change");
+                js_request("https://graviex.net:443//api/v2/tickers/{COIN}btc.json", res => exdata.fillj(res["ticker"], "last", "volbtc", "buy", "sell", "change"), true);
                 break;
             }
             case "escodex": {
                 exdata.link = rg_replace("https://wallet.escodex.com/market/ESCODEX.{COIN}_ESCODEX.BTC");
-                exdata.fillj(js_request("http://labs.escodex.com/api/ticker").find(x => x.base === "BTC" && x.quote === conf.coin.toUpperCase()), "latest", "base_volume", "lowest_ask", "highest_bid", "percent_change");
+                js_request("http://labs.escodex.com/api/ticker", res => exdata.fillj(res.find(x => x.base === "BTC" && x.quote === conf.coin.toUpperCase()), "latest", "base_volume", "lowest_ask", "highest_bid", "percent_change"));
                 break;
             }
             case "cryptopia": {
                 exdata.link = rg_replace("https://www.cryptopia.co.nz/Exchange/?market={COIN}_BTC");
-                exdata.fillj(js_request("https://www.cryptopia.co.nz/api/GetMarket/{COIN}_BTC")["Data"], "LastPrice", "BaseVolume", "AskPrice", "BidPrice", "Change");
+                js_request("https://www.cryptopia.co.nz/api/GetMarket/{COIN}_BTC", res => exdata.fillj(res["Data"], "LastPrice", "BaseVolume", "AskPrice", "BidPrice", "Change"));
                 break;
             }
             case "stex": {
                 exdata.link = rg_replace("https://app.stex.com/en/basic-trade/BTC?currency2={COIN}");
-                tmp = js_request("https://app.stex.com/api2/ticker").find(x => x.market_name === rg_replace("{COIN}_BTC"));
-                exdata.fill(tmp["last"], (tmp["last"] + tmp["lastDayAgo"]) / 2 * tmp["volume"], tmp["ask"], tmp["bid"], tmp["last"] / tmp["lastDayAgo"]); // volume and change not 100% accurate
+                js_request("https://app.stex.com/api2/ticker", res => {
+                    tmp = res.find(x => x.market_name === rg_replace("{COIN}_BTC"));
+                    exdata.fill(tmp["last"], (tmp["last"] + tmp["lastDayAgo"]) / 2 * tmp["volume"], tmp["ask"], tmp["bid"], tmp["last"] / tmp["lastDayAgo"]); // volume and change not 100% accurate
+                });
                 break;
             }
             case "c-cex": {
                 exdata.link = rg_replace("https://c-cex.com/?p={COIN}-btc", true);
-                tmp = js_request("https://c-cex.com/t/{COIN}-btc.json", true)["ticker"];
-                exdata.fill(tmp["lastprice"], js_request("https://c-cex.com/t/volume_btc.json")["ticker"][conf.coin.toLowerCase()]["vol"], tmp["buy"], tmp["sell"], undefined);
+                js_request("https://c-cex.com/t/{COIN}-btc.json", res => {
+                    tmp = res["ticker"];
+                    let vol = undefined;
+                    try {
+                        let req = new XMLHttpRequest();
+                        req.open("GET", "https://c-cex.com/t/volume_btc.json", false);
+                        req.send();
+                        vol = JSON.parse(req.responseText)["ticker"][conf.coin.toLowerCase()]["vol"];
+                    }
+                    catch(e) {
+                        //
+                    }
+                    exdata.fill(tmp["lastprice"], vol, tmp["buy"], tmp["sell"], undefined); // change not supported
+                }, true);
                 break;
             }
             case "hitbtc": {
                 exdata.link = rg_replace("https://hitbtc.com/{COIN}-to-BTC");
-                exdata.fillj(js_request("https://api.hitbtc.com/api/2/public/ticker/{COIN}BTC"), "last", "volumeQuote", "ask", "bid", ""); // change not supported
+                js_request("https://api.hitbtc.com/api/2/public/ticker/{COIN}BTC", res => exdata.fillj(res, "last", "volumeQuote", "ask", "bid", "")); // change not supported
                 break;
             }
             case "yobit": {
                 exdata.link = rg_replace("https://yobit.net/en/trade/{COIN}/BTC");
-                exdata.fillj(js_request("https://yobit.net/api/2/{COIN}_btc/ticker", true)["ticker"], "last", "vol", "buy", "sell", ""); // change not supported
+                js_request("https://yobit.net/api/2/{COIN}_btc/ticker", res => exdata.fillj(res["ticker"], "last", "vol", "buy", "sell", ""), true); // change not supported
                 break;
             }
             case "bittrex": {
                 exdata.link = rg_replace("https://www.bittrex.com/Market/Index?MarketName=BTC-{COIN}");
-                tmp = js_request("https://bittrex.com/api/v1.1/public/getmarketsummary?market=btc-{COIN}", true)["result"][0];
-                exdata.fill(tmp["Last"], tmp["BaseVolume"], tmp["Bid"], tmp["Ask"], tmp["Last"] / tmp["PrevDay"]); // change not 100% accurate
+                js_request("https://bittrex.com/api/v1.1/public/getmarketsummary?market=btc-{COIN}", res => {
+                    tmp = res["result"][0];
+                    exdata.fill(tmp["Last"], tmp["BaseVolume"], tmp["Bid"], tmp["Ask"], tmp["Last"] / tmp["PrevDay"]); // change not 100% accurate
+                }, true);
+                
                 break;
             }
             case "southxchange": {
                 exdata.link = rg_replace("https://www.southxchange.com/Market/Book/{COIN}/BTC");
-                exdata.fillj(js_request("https://www.southxchange.com/api/price/{COIN}/BTC"), "Last", "Volume24Hr", "Bid", "Ask", "Variation24Hr");
+                js_request("https://www.southxchange.com/api/price/{COIN}/BTC", res => exdata.fillj(res, "Last", "Volume24Hr", "Bid", "Ask", "Variation24Hr"));
                 break;
             }
             case "exrates": {
                 exdata.link = "https://exrates.me/dashboard"; // no filter
-                exdata.fillj(js_request("https://exrates.me/openapi/v1/public/ticker?currency_pair={COIN}_btc", true)[0], "last", "quoteVolume", "highestBid", "lowestAsk", "percentChange");
+                js_request("https://exrates.me/openapi/v1/public/ticker?currency_pair={COIN}_btc", res => exdata.fillj(res[0], "last", "quoteVolume", "highestBid", "lowestAsk", "percentChange"), true);
                 break;
             }
             case "binance": {
-                exdata.link = rg_replace("https://www.binance.com/es/trade/{COIN}_BTC"); 
-                exdata.fillj(js_request("https://api.binance.com/api/v1/ticker/24hr?symbol={COIN}BTC"), "lastPrice", "quoteVolume", "bidPrice", "askPrice", "priceChangePercent");
+                exdata.link = rg_replace("https://www.binance.com/es/trade/{COIN}_BTC");
+                js_request("https://api.binance.com/api/v1/ticker/24hr?symbol={COIN}BTC", res => exdata.fillj(res, "lastPrice", "quoteVolume", "bidPrice", "askPrice", "priceChangePercent"));
                 break;
             }
             case "bitfinex": {
                 exdata.link = rg_replace("https://www.bitfinex.com/t/{COIN}:BTC");
-                tmp = js_request("https://api.bitfinex.com/v2/ticker/t{COIN}BTC"); // [bid, bidsize, ask, asksize, daychg, daychg%, last, vol, high, low]
-                exdata.fill(tmp[6], (tmp[8] + tmp[9]) / 2 * tmp[7], tmp[0], tmp[2], tmp[5]); // volume not 100% accurate
+                // [bid, bidsize, ask, asksize, daychg, daychg%, last, vol, high, low]
+                js_request("https://api.bitfinex.com/v2/ticker/t{COIN}BTC", res => exdata.fill(res[6], (res[8] + res[9]) / 2 * res[7], res[0], res[2], res[5])); // volume not 100% accurate
                 break;
             }
             case "moondex": {
                 exdata.link = rg_replace("https://beta.moondex.io/market/MOONDEX.{COIN}_MOONDEX.BTC");
-                exdata.fillj(js_request("https://data.moondex.io/ticker/{COIN}_BTC"), "latest", "volume", "highestBid", "lowestAsk", "percentChange");
+                js_request("https://data.moondex.io/ticker/{COIN}_BTC", res => exdata.fillj(res, "latest", "volume", "highestBid", "lowestAsk", "percentChange"));
                 break;
             }
             case "coinex": {
                 exdata.link = rg_replace("https://www.coinex.com/exchange?currency=btc&dest={COIN}#limit", true);
-                tmp = js_request("https://api.coinex.com/v1/market/ticker?market={COIN}BTC")["data"]["ticker"];
-                exdata.fill(tmp["last"], (parseFloat(tmp["high"]) + parseFloat(tmp["low"])) / 2 * tmp["vol"], tmp["buy"], tmp["sell"], tmp["last"] / tmp["open"]); // volume not 100% accurate
+                js_request("https://api.coinex.com/v1/market/ticker?market={COIN}BTC", res => {
+                    tmp = res["data"]["ticker"];
+                    exdata.fill(tmp["last"], (parseFloat(tmp["high"]) + parseFloat(tmp["low"])) / 2 * tmp["vol"], tmp["buy"], tmp["sell"], tmp["last"] / tmp["open"]); // volume not 100% accurate
+                });
                 break;
             }
             case "p2pb2b": {
                 exdata.link = rg_replace("https://p2pb2b.io/trade/{COIN}_BTC");
-                exdata.fillj(js_request("https://p2pb2b.io/api/v1/public/ticker?market={COIN}_BTC")["result"], "last", "deal", "bid", "ask", "change");
+                js_request("https://p2pb2b.io/api/v1/public/ticker?market={COIN}_BTC", res => exdata.fillj(res["result"], "last", "deal", "bid", "ask", "change"));
                 break;
             }
             case "coinsbit": {
                 exdata.link = rg_replace("https://coinsbit.io/trade/{COIN}_BTC");
-                exdata.fillj(js_request("https://coinsbit.io/api/v1/public/ticker?market={COIN}_BTC")["result"], "last", "deal", "bid", "ask", "change");
+                js_request("https://coinsbit.io/api/v1/public/ticker?market={COIN}_BTC", res => exdata.fillj(res["result"], "last", "deal", "bid", "ask", "change"));
                 break;
             }
+            default: {
+                resolve(exdata);
+            }
         }
-    }
-    catch (e) {
-        //console.log("Error retrieving " + exchange + " data: " + e);
-    }
+        
+    });
 
-    return exdata;
 }
 function get_config() {
     var str = fs.readFileSync("./config.json", "utf8"); // for some reason is adding a invalid character at the beginning that causes a throw
@@ -205,6 +241,7 @@ function restart_bot() {
         console.log("Restarting bot in " + i + " seconds..."); // just to avoid constant reset in case of constant crash cause no internet
         Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 1000);
     }
+    //client.destroy(); // need to check 
     client = new Discord.Client();
     client.on("message", response_msg);
     client.login(conf.token).then(() => console.log("Bot restart succeeded!"));
@@ -220,7 +257,7 @@ class BotCommand {
 
         var promises = [];
         for (let ticker of conf.ticker)
-            promises.push(new Promise((resolve, reject) => resolve(get_ticker(ticker))));
+            promises.push(get_ticker(ticker));
 
         Promise.all(promises).then(values => {
 
@@ -558,7 +595,7 @@ class BotCommand {
                         value:
                             " - **" + conf.prefix + "stats** : "    + blocked_cmd(conf.cmd.stats.stats, "get the current stats of the " + conf.coin + " blockchain") + "\n" +
                             " - **" + conf.prefix + "earnings** : " + blocked_cmd(conf.cmd.earnings,    "get the expected " + conf.coin + " earnings per masternode to get an idea of how close you are to getting a lambo") + "\n" +
-                            " - **" + conf.prefix + "mining <hashrate> [KHash / MHash / GHash / THash]** : " + blocked_cmd(conf.cmd.earnings, "get the expected " + conf.coin + " earnings with the given hashrate, aditionally you can put the hashrate multiplier (KHash, MHash, ...)")
+                            " - **" + conf.prefix + "mining <hashrate> [K/M/G/T]** : " + blocked_cmd(conf.cmd.earnings, "get the expected " + conf.coin + " earnings with the given hashrate, aditionally you can put the hashrate multiplier (K = KHash/s, M = MHash/s, ...)")
                     },
                     {
                         name: "Explorer",
@@ -766,67 +803,6 @@ function response_msg(msg) {
 
 }
 
-function debug_bot() {
-
-    const exch_check = (val) => {
-        return "[" + (val === undefined ? "-" : val === "Error" ? "X" : String.fromCharCode(8730)) + "]";
-    };
-    const req_check = (req, fn, param = "") => {
-        console.log(" - " + req + ": " + (conf.requests[req] === "" ? "Disabled" : fn(bash_cmd(conf.requests[req] + param))));
-    };
-    const req_check_json = (req, fn, param = "") => {
-        if (conf.requests[req] === "") {
-            console.log(" - " + req + ": Disabled");
-        }
-        else {
-            try {
-                var json = JSON.parse(bash_cmd(conf.requests[req] + param));
-                console.log(" - " + req + ":");
-                fn(json);
-            }
-            catch (e) {
-                console.log(" - " + req + ": Bad data format, expected JSON");
-            }
-        }
-    };
-
-    if (process.argv.length < 3 || process.argv[2].toLowerCase() !== "debug")
-        return;
-
-    console.log("\nChecking bot...");
-    console.log("  balance value: "   + (process.argv.length >= 3 ? process.argv[3] : "(none)"));
-    console.log("  blockhash value: " + (process.argv.length >= 4 ? process.argv[4] : "(none)"));
-
-    console.log("\nTickers: [price][volume][ask][bid][change] (" + String.fromCharCode(8730) + " == OK / X == ERR / - == Not supported) :");
-    for (let exch of conf.ticker) {
-        var exd = get_ticker(exch);
-        console.log(" - " + exch + ": " + exch_check(exd.price) + exch_check(exd.volume) + exch_check(exd.ask) + exch_check(exd.bid) + exch_check(exd.change));
-    }
-
-    console.log("\nRequests:");
-    
-    req_check("blockcount", x => /^[0-9\n]+$/.test(x) ? "OK" : "Bad data format, expected only numbers");
-    req_check("mncount", x => /^[0-9\n]+$/.test(x) ? "OK" : "Bad data format, expected only numbers");
-    req_check("supply", x => /^[0-9.\n]+$/.test(x) ? "OK" : "Bad data format, expected only numbers and/or a dot");
-    req_check_json("balance", x => {
-        console.log("     > sent: " + (x["sent"] === undefined ? "Missing attribute" : /^[0-9.\n]+$/.test(x["sent"]) ? "OK" : "Bad data format, expected only numbers and/or a dot"));
-        console.log("     > received: " + (x["received"] === undefined ? "Missing attribute" : /^[0-9.\n]+$/.test(x["received"]) ? "OK" : "Bad data format, expected only numbers and/or a dot"));
-        console.log("     > balance: " + (x["balance"] === undefined ? "Missing attribute" : /^[0-9.\n]+$/.test(x["balance"]) ? "OK" : "Bad data format, expected only numbers and/or a dot"));
-    }, process.argv[3]);
-    req_check("blockindex", x => /^[A-Za-z0-9\n]+$/.test(x) ? "OK" : "Bad data format, expected only letters and numbers", "1");
-    req_check_json("blockhash", x => {
-            console.log("     > height: "            + (x["height"]            === undefined ? "Missing attribute" : /^[0-9\n]+$/.test(x["height"])                   ? "OK" : "Bad data format, expected only numbers"));
-            console.log("     > hash: "              + (x["hash"]              === undefined ? "Missing attribute" : /^[A-Za-z0-9\n]+$/.test(x["hash"])               ? "OK" : "Bad data format, expected only numbers and letters"));
-            console.log("     > confirmations: "     + (x["confirmations"]     === undefined ? "Missing attribute" : /^[0-9\n]+$/.test(x["confirmations"])            ? "OK" : "Bad data format, expected only numbers"));
-            console.log("     > size: "              + (x["size"]              === undefined ? "Missing attribute" : /^[0-9\n]+$/.test(x["size"])                     ? "OK" : "Bad data format, expected only numbers"));
-            console.log("     > previousblockhash: " + (x["previousblockhash"] === undefined ? "Missing attribute" : /^[A-Za-z0-9\n]+$/.test(x["previousblockhash"])  ? "OK" : "Bad data format, expected only numbers and letters"));
-            console.log("     > nextblockhash: "     + (x["nextblockhash"]     === undefined ? "Missing attribute" : /^[A-Za-z0-9\n]+$/.test(x["nextblockhash"])      ? "OK" : "Bad data format, expected only numbers and letters"));
-            console.log("     > tx: "                + (x["tx"]                === undefined ? "Missing attribute" : typeof x["tx"][Symbol.iterator] === "function"   ? "OK" : "Bad data format, expected a list"));
-    }, process.argv[4]);
-    console.log("\nIMPORTANT NOTE: If you're using explorer urls, and the explorer doesn't allow too much consecutives API calls, then you should whitelist the bot IP, otherwise you may expect sometimes a error on some commands, even in this debug mode.\n");
-    process.exit();
-}
-
 process.on("uncaughtException", err => {
     console.log("Global exception caught: " + err);
     restart_bot();
@@ -836,7 +812,6 @@ process.on("unhandledRejection", err => {
     restart_bot();
 });
 
-debug_bot();
 client.on("message", response_msg);
 client.login(conf.token).then(() => console.log("Bot ready!"));
 
