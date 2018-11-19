@@ -7,7 +7,6 @@ var conf = get_config();
 var client = new Discord.Client();
 
 /* TODO: 
- *  - Add optional BTC and/or USD earnings (average of all markets) on !earnings and !mining
  *  - Add a way to run on background (without 3rd party software if possible)
 */ 
 
@@ -196,6 +195,75 @@ function get_ticker(exchange) {
     });
 
 }
+function price_avg() {
+
+    return new Promise((resolve, reject) => {
+        let promises = [];
+        for (let ticker of conf.ticker)
+            promises.push(get_ticker(ticker));
+        Promise.all(promises).then(values => {
+            let sum = 0.00, len = 0;
+            for (x of values) {
+                if (x.price !== "Error") {
+                    sum += parseFloat(x.price);
+                    len++;
+                }
+            }
+            resolve(sum / len);
+        });
+    });
+}
+function price_btc_usd() {
+
+    return new Promise((resolve, reject) => {
+        let req = new XMLHttpRequest();
+        req.open("GET", "https://min-api.cryptocompare.com/data/price?fsym=BTC&tsyms=USD");
+        req.onreadystatechange = () => {
+            if (req.readyState === 4) {
+                if (req.status === 200) {
+                    try {
+                        resolve(JSON.parse(req.responseText)["USD"]);
+                    }
+                    catch (e) {
+                        //
+                    }
+                }
+                resolve(0);
+            }
+        };
+        req.send();
+    });
+
+}
+function earn_fields(coinday, avgbtc, priceusd) {
+    const earn_value = (mult) => {
+        return (coinday * mult).toFixed(4) + " " + conf.coin +
+            (conf.earnsbtc ? "\n" + (coinday * mult * avgbtc).toFixed(8) + " BTC" : "") +
+            (conf.earnsusd ? "\n" + (coinday * mult * avgbtc * priceusd).toFixed(2) + " USD" : "");
+    };
+    return [
+        {
+            name: "Daily",
+            value: earn_value(1),
+            inline: true
+        },
+        {
+            name: "Weekly",
+            value: earn_value(7),
+            inline: true
+        },
+        {
+            name: "Monthly",
+            value: earn_value(30),
+            inline: true
+        },
+        {
+            name: "Yearly",
+            value: earn_value(365),
+            inline: true
+        }
+    ];
+}
 function get_config() {
     var str = fs.readFileSync("./config.json", "utf8"); // for some reason is adding a invalid character at the beginning that causes a throw
     var json = JSON.parse(str.slice(str.indexOf("{")));
@@ -256,7 +324,7 @@ class BotCommand {
 
     price() {
 
-        var promises = [];
+        let promises = [];
         for (let ticker of conf.ticker)
             promises.push(get_ticker(ticker));
 
@@ -268,7 +336,7 @@ class BotCommand {
                 return str + val + "\n";
             };
 
-            var embed = new Discord.RichEmbed();
+            let embed = new Discord.RichEmbed();
             embed.title = "**Price Ticker**";
             embed.color = conf.color.prices;
             embed.timestamp = new Date();
@@ -377,10 +445,12 @@ class BotCommand {
 
         Promise.all([
             new Promise((resolve, reject) => resolve(bash_cmd(conf.requests.blockcount))),
-            new Promise((resolve, reject) => resolve(bash_cmd(conf.requests.mncount)))
-        ]).then(([blockcount, mncount]) => {
-            var stage = get_stage(blockcount);
-            var coinday = 86400 / conf.blocktime / mncount * stage.mn;
+            new Promise((resolve, reject) => resolve(bash_cmd(conf.requests.mncount))),
+            new Promise((resolve, reject) => resolve(conf.earnsbtc || conf.earnsusd ? price_avg() : 0)),
+            new Promise((resolve, reject) => resolve(conf.earnsusd ? price_btc_usd() : 0))
+        ]).then(([blockcount, mncount, avgbtc, priceusd]) => {
+            let stage = get_stage(blockcount);
+            let coinday = 86400 / conf.blocktime / mncount * stage.mn;
             this.msg.channel.send({
                 embed: {
                     title: conf.coin + " Earnings",
@@ -389,32 +459,11 @@ class BotCommand {
                         {
                             name: "ROI",
                             value: (36500 / (stage.coll / coinday)).toFixed(2) + "% / " + (stage.coll / coinday).toFixed(2) + " days"
-                        },
-                        {
-                            name: "Daily",
-                            value: coinday.toFixed(4) + " " + conf.coin,
-                            inline: true
-                        },
-                        {
-                            name: "Weekly",
-                            value: (coinday * 7).toFixed(4) + " " + conf.coin,
-                            inline: true
-                        },
-                        {
-                            name: "Monthly",
-                            value: (coinday * 30).toFixed(4) + " " + conf.coin,
-                            inline: true
-                        },
-                        {
-                            name: "Yearly",
-                            value: (coinday * 365).toFixed(4) + " " + conf.coin,
-                            inline: true
                         }
-                    ],
+                    ].concat(earn_fields(coinday, avgbtc, priceusd)),
                     timestamp: new Date()
                 }
             });
-
         });
 
     }
@@ -444,8 +493,10 @@ class BotCommand {
         if (/^[0-9.\n]+$/.test(hr)) {
             Promise.all([
                 new Promise((resolve, reject) => resolve(bash_cmd(conf.requests.blockcount))),
-                new Promise((resolve, reject) => resolve(bash_cmd(conf.requests.hashrate)))
-            ]).then(([blockcount, total_hr]) => {
+                new Promise((resolve, reject) => resolve(bash_cmd(conf.requests.hashrate))),
+                new Promise((resolve, reject) => resolve(conf.earnsbtc || conf.earnsusd ? price_avg() : 0)),
+                new Promise((resolve, reject) => resolve(conf.earnsusd ? price_btc_usd() : 0))
+            ]).then(([blockcount, total_hr, avgbtc, priceusd]) => {
                 let stage = get_stage(blockcount);
                 let coinday = 86400 / conf.blocktime * stage.pow * calc_multiplier() / total_hr;
                 this.msg.channel.send({
@@ -453,28 +504,7 @@ class BotCommand {
                         title: conf.coin + " Mining (" + hr + " " + letter + "H/s)",
                         color: conf.color.coininfo,
                         description: stage.pow === undefined ? "POW disabled in the current coin stage" : "",
-                        fields: stage.pow === undefined ? [] : [
-                            {
-                                name: "Daily",
-                                value: coinday.toFixed(4) + " " + conf.coin,
-                                inline: true
-                            },
-                            {
-                                name: "Weekly",
-                                value: (coinday * 7).toFixed(4) + " " + conf.coin,
-                                inline: true
-                            },
-                            {
-                                name: "Monthly",
-                                value: (coinday * 30).toFixed(4) + " " + conf.coin,
-                                inline: true
-                            },
-                            {
-                                name: "Yearly",
-                                value: (coinday * 365).toFixed(4) + " " + conf.coin,
-                                inline: true
-                            }
-                        ],
+                        fields: stage.pow === undefined ? [] : earn_fields(coinday, avgbtc, priceusd),
                         timestamp: new Date()
                     }
                 });
@@ -495,7 +525,7 @@ class BotCommand {
     balance(addr) {
 
         try {
-            var json = JSON.parse(bash_cmd(conf.requests.balance + addr));
+            let json = JSON.parse(bash_cmd(conf.requests.balance + addr));
             if (json["sent"] !== undefined || json["received"] !== undefined || json["balance"] !== undefined) {
                 msg.channel.send({
                     embed: {
@@ -545,7 +575,7 @@ class BotCommand {
     }
     block_hash(hash) {
 
-        var str = "Invalid block index or hash";
+        let str = "Invalid block index or hash";
 
         if (/^[A-Za-z0-9\n]+$/.test(hash)) {
             try {
@@ -650,7 +680,7 @@ class BotCommand {
     conf_set() {
         this.msg.channel.send("<@" + this.msg.author.id + "> check the dm I just sent to you :wink:");
         this.msg.author.send("Put the config.json file here and I'll update myself with the changes, don't send any message, just drag and drop the file, you have 90 seconds to put the file or you'll have to use **!conf-set** again").then(reply => {
-            var msgcol = new Discord.MessageCollector(reply.channel, m => m.author.id === this.msg.author.id, { time: 90000 });
+            let msgcol = new Discord.MessageCollector(reply.channel, m => m.author.id === this.msg.author.id, { time: 90000 });
             msgcol.on("collect", (elem, col) => {
                 msgcol.stop("received");
                 if (elem.attachments.array()[0]["filename"] !== "config.json") {
@@ -658,7 +688,7 @@ class BotCommand {
                     return;
                 }
                 try {
-                    var conf_res = synced_request(elem.attachments.array()[0]["url"]);
+                    let conf_res = synced_request(elem.attachments.array()[0]["url"]);
                     conf_res = conf_res.slice(conf_res.indexOf("{"));
                     JSON.parse(conf_res); // just check if throws
                     fs.writeFileSync("./config.json", conf_res);

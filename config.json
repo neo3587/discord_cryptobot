@@ -20,7 +20,7 @@
   ],
   "stages": [
     {
-      "block": 120000,
+      "block": 130000,
       "coll": 5000,
       "mn": 70.08,
       "pos": 2.92
@@ -63,12 +63,12 @@
     }
   ],
   "requests": {
-    "blockcount": "curl -s http://explorer.cardbuyers.cc:3001/api/getblockcount",
-    "mncount": "curl -s http://explorer.cardbuyers.cc:3001/ext/summary | jq .data[0].masternodeCount",
-    "supply": "curl -s http://explorer.cardbuyers.cc:3001/ext/getmoneysupply",
-    "balance": "curl -s http://explorer.cardbuyers.cc:3001/ext/getaddress/",
-    "blockindex": "curl -s http://explorer.cardbuyers.cc:3001/api/getblockhash?index=",
-    "blockhash": "curl -s http://explorer.cardbuyers.cc:3001/api/getblock?hash="
+    "blockcount": "curl -s http://95.179.170.241:3001/api/getblockcount",
+    "mncount": "curl -s http://95.179.170.241:3001/ext/summary | jq .data[0].masternodeCount",
+    "supply": "curl -s http://95.179.170.241:3001/ext/getmoneysupply",
+    "balance": "curl -s http://95.179.170.241:3001/ext/getaddress/",
+    "blockindex": "curl -s http://95.179.170.241:3001/api/getblockhash?index=",
+    "blockhash": "curl -s http://95.179.170.241:3001/api/getblock?hash="
   },
   "statorder": [
     "blockcount",
@@ -83,6 +83,8 @@
     "nextstage"
   ],
   "hidenotsupported": false,
+  "earnsbtc": true,
+  "earnsusd": true,
   "sourcecode": "https://github.com/neo3587/discord_cryptobot",
   "channel": "479496777700212746",
   "prefix": "!",
