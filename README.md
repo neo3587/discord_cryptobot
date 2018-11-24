@@ -12,7 +12,7 @@ The bot can run on any machine, but the commands **!stats**, **!earnings**, **!b
 In case of using a Linux machine for running the bot, you can install Node.js with these 2 commands:
 ```
 curl -sL https://deb.nodesource.com/setup_8.x | sudo -E bash -
-sudo apt - get install - y nodejs
+sudo apt-get install -y nodejs
 ```
 After installing Node.js, you'll need to install these 2 dependencies with the commands:
 ```
