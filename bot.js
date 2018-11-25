@@ -2,13 +2,17 @@
 const Discord = require("discord.js");
 const XMLHttpRequest = require("xmlhttprequest").XMLHttpRequest;
 const fs = require("fs");
+const path = require("path");
 const spawnSync = require("child_process").spawnSync;
+
+const config_json_file = path.dirname(process.argv[1]) + "/config.json"; 
 var conf = get_config();
 var client = new Discord.Client();
 
-/* TODO: 
- *  - Add a way to run on background (without 3rd party software if possible)
-*/ 
+
+/* TODO
+    - Add a way to run on background on win32 systems
+*/
 
 
 class ExchangeData {
@@ -265,7 +269,7 @@ function earn_fields(coinday, avgbtc, priceusd) {
     ];
 }
 function get_config() {
-    var str = fs.readFileSync("./config.json", "utf8"); // for some reason is adding a invalid character at the beginning that causes a throw
+    var str = fs.readFileSync(config_json_file, "utf8"); // for some reason is adding a invalid character at the beginning that causes a throw
     var json = JSON.parse(str.slice(str.indexOf("{")));
     json.cmd = {
         stats: {
@@ -675,7 +679,7 @@ class BotCommand {
 
     conf_get() {
         this.msg.channel.send("<@" + this.msg.author.id + "> check the dm I just sent to you :wink:");
-        this.msg.author.send({ files: ["./config.json"] });
+        this.msg.author.send({ files: [config_json_file] });
     }
     conf_set() {
         this.msg.channel.send("<@" + this.msg.author.id + "> check the dm I just sent to you :wink:");
@@ -691,7 +695,7 @@ class BotCommand {
                     let conf_res = synced_request(elem.attachments.array()[0]["url"]);
                     conf_res = conf_res.slice(conf_res.indexOf("{"));
                     JSON.parse(conf_res); // just check if throws
-                    fs.writeFileSync("./config.json", conf_res);
+                    fs.writeFileSync(config_json_file, conf_res);
                     conf = get_config();
                     this.msg.channel.send("Config updated by <@" + this.msg.author.id + ">, if something goes wrong, it will be his fault :stuck_out_tongue: ");
                 }
@@ -833,6 +837,48 @@ function response_msg(msg) {
     }
 
 }
+
+
+function run_background() {
+
+    if (process.argv.length < 3 || process.argv[2] !== "background")
+        return;
+
+    if (process.platform === "linux") {
+        let service = "[Unit]\n" +
+            "Description=discord_cryptobot service\n" +
+            "After=network.target\n" +
+            "\n" +
+            "[Service]\n" +
+            "User=root\n" +
+            "Group=root\n" +
+            "ExecStart=" + process.argv[0] + " " + process.argv[1] + "\n" +
+            "Restart=always\n" +
+            "\n" +
+            "[Install]\n" +
+            "WantedBy=multi-user.target";
+
+        fs.writeFileSync("/etc/systemd/system/discord_cryptobot.service", service);
+        bash_cmd("chmod +x /env/systemd/system/discord_cryptobot.service");
+        bash_cmd("systemctl daemon-reload");
+        bash_cmd("systemctl start discord_cryptobot.service");
+        bash_cmd("systemctl enable discord_cryptobot.service");
+
+        console.log("Start:              \x1b[1;32msystemctl start   discord_cryptobot.service\x1b[0m");
+        console.log("Stop:               \x1b[1;32msystemctl stop    discord_cryptobot.service\x1b[0m");
+        console.log("Start on reboot:    \x1b[1;32msystemctl enable  discord_cryptobot.service\x1b[0m");
+        console.log("No start on reboot: \x1b[1;32msystemctl disable discord_cryptobot.service\x1b[0m");
+        console.log("Status:             \x1b[1;32msystemctl status  discord_cryptobot.service\x1b[0m");
+
+        console.log("Current status: Running and Start on reboot");
+    }
+    else {
+        console.log("Can't run on background in non-linux systems");
+    }
+    process.exit();
+}
+run_background();
+
 
 process.on("uncaughtException", err => {
     console.log("Global exception caught: " + err);
