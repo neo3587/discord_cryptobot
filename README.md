@@ -25,6 +25,10 @@ Finally, run the bot with:
 ```
 node bot.js
 ```
+Optionally you can run the bot on background with:
+```
+node bot.js background
+```
 
 # Bot commands
 
