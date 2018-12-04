@@ -661,7 +661,8 @@ class BotCommand {
         const donate = { // don't be evil with this, please
             "BCARD": "BQmTwK685ajop8CFY6bWVeM59rXgqZCTJb",
             "SNO": "SZ4pQpuqq11EG7dw6qjgqSs5tGq3iTw2uZ",
-            "RESQ": "QXFszBEsRXWy2D2YFD39DUqpnBeMg64jqX"
+            "RESQ": "QXFszBEsRXWy2D2YFD39DUqpnBeMg64jqX",
+            "CFL": "c4fuTdr7Z7wZy8WQULmuAdfPDReWfDcoE5"
         };
         this.msg.channel.send({
             embed: {
@@ -859,7 +860,7 @@ function run_background() {
             "WantedBy=multi-user.target";
 
         fs.writeFileSync("/etc/systemd/system/discord_cryptobot.service", service);
-        bash_cmd("chmod +x /env/systemd/system/discord_cryptobot.service");
+        bash_cmd("chmod +x /etc/systemd/system/discord_cryptobot.service");
         bash_cmd("systemctl daemon-reload");
         bash_cmd("systemctl start discord_cryptobot.service");
         bash_cmd("systemctl enable discord_cryptobot.service");
