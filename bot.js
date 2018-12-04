@@ -530,8 +530,8 @@ class BotCommand {
 
         try {
             let json = JSON.parse(bash_cmd(conf.requests.balance + addr));
-            if (json["sent"] !== undefined || json["received"] !== undefined || json["balance"] !== undefined) {
-                msg.channel.send({
+            if (json["sent"] !== undefined && json["received"] !== undefined && json["balance"] !== undefined) {
+                this.msg.channel.send({
                     embed: {
                         title: "Balance",
                         color: conf.color.explorer,
@@ -559,6 +559,7 @@ class BotCommand {
                         timestamp: new Date()
                     }
                 });
+                return;
             }
         }
         catch (e) {
@@ -568,7 +569,7 @@ class BotCommand {
             embed: {
                 title: "Balance",
                 color: conf.color.explorer,
-                description: "Invalid address: " + cmds[1],
+                description: "Invalid address: " + addr,
                 timestamp: new Date()
             }
         });
@@ -715,7 +716,7 @@ class BotCommand {
 
 function response_msg(msg) {
 
-    if (msg.channel.id !== conf.channel || !msg.content.startsWith(conf.prefix) || msg.author.bot)
+    if (msg.channel.id !== conf.channel || !msg.content.startsWith(conf.prefix) || msg.author.bot) // msg.channel.id.length && !conf.channel.includes(msg.channel.id)
         return;
 
     var args = msg.content.slice(conf.prefix.length).split(" ");
@@ -839,7 +840,6 @@ function response_msg(msg) {
 
 }
 
-
 function run_background() {
 
     if (process.argv.length < 3 || process.argv[2] !== "background")
@@ -879,7 +879,6 @@ function run_background() {
     process.exit();
 }
 run_background();
-
 
 process.on("uncaughtException", err => {
     console.log("Global exception caught: " + err);
