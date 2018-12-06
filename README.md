@@ -120,7 +120,7 @@ Important note if you customize the requests:
 ```
 - **hidenotsupported**: Hide the ticker values from exchanges APIs that doesn't support that feature instead of showing "Not Supported".
 - **sourcecode:** You don't need to touch this, it's just in case I change the repo in the future.
-- **channel:** The id of the channel where the bot will read and reply the commands.
+- **channel:** List of the ids of the channels where the bot will listen and reply the commands (leaving the list empty will listen all the channels).
 - **prefix:** The initial character for the commands.
 - **coin:** The name of your coin.
 - **blocktime:** Block time in seconds (used to calculate the earnings).
@@ -160,6 +160,7 @@ NOTE 2: Feel free to ask for adding support to a concrete exchange.
 BTC Donations:   3HE1kwgHEWvxBa38NHuQbQQrhNZ9wxjhe7
 BCARD Donations: BQmTwK685ajop8CFY6bWVeM59rXgqZCTJb
 RESQ Donations:  QhsqRbQVNHCAe93puAnHUX96jsmMxtpBNh
+CFL Donations:   c4fuTdr7Z7wZy8WQULmuAdfPDReWfDcoE5
 ```
 
 A big thanks to https://github.com/discordjs/discord.js for this amazing library for interfacing with the discord API.
