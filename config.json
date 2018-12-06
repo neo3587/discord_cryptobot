@@ -86,7 +86,7 @@
   "earnsbtc": true,
   "earnsusd": true,
   "sourcecode": "https://github.com/neo3587/discord_cryptobot",
-  "channel": "479496777700212746",
+  "channel": [ "479496777700212746" ],
   "prefix": "!",
   "coin": "BCARD",
   "blocktime": 60,

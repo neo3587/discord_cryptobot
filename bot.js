@@ -4,6 +4,7 @@ const XMLHttpRequest = require("xmlhttprequest").XMLHttpRequest;
 const fs = require("fs");
 const path = require("path");
 const spawnSync = require("child_process").spawnSync;
+const spawn = require("child_process").spawn;
 
 const config_json_file = path.dirname(process.argv[1]) + "/config.json"; 
 var conf = get_config();
@@ -12,6 +13,15 @@ var client = new Discord.Client();
 
 /* TODO
     - Add a way to run on background on win32 systems
+    - !earnings [optional amount of MNs]
+    - User specific options:
+        - !my-address-add <addr>
+        - !my-address-del <addr>
+        - !my-balance : show individual address balance + total
+        # not sure if the following will be possible by only using the explorer => wallet : listmasternodes [addr]
+        - !my-masternode-add <mn_addr> 
+        - !my-masternode-del <mn_addr>
+        - !my-earnings : show also the nº of MNs, and if a MN status != ENABLED
 */
 
 
@@ -313,11 +323,7 @@ function restart_bot() {
         console.log("Restarting bot in " + i + " seconds..."); // just to avoid constant reset in case of constant crash cause no internet
         Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 1000);
     }
-    client.destroy().then(() => {
-        client = new Discord.Client();
-        client.on("message", response_msg);
-        client.login(conf.token).then(() => console.log("Bot restart succeeded!"));
-    });
+    process.exit();
 }
 
 class BotCommand {
@@ -716,7 +722,7 @@ class BotCommand {
 
 function response_msg(msg) {
 
-    if (msg.channel.id !== conf.channel || !msg.content.startsWith(conf.prefix) || msg.author.bot) // msg.channel.id.length && !conf.channel.includes(msg.channel.id)
+    if (conf.channel.length && !conf.channel.includes(msg.channel.id) || !msg.content.startsWith(conf.prefix) || msg.author.bot)
         return;
 
     var args = msg.content.slice(conf.prefix.length).split(" ");
@@ -763,12 +769,12 @@ function response_msg(msg) {
                 cmd.stats();
             break;
         }
-        case "earnings": { 
+        case "earnings": {
             if (conf.cmd.earnings)
                 cmd.earnings();
             break;
         }
-        case "mining": { 
+        case "mining": {
             if (conf.cmd.mining && !error_noparam(2, "You need to provide amount of hashrate"))
                 cmd.mining(args[1], args[2]);
             break;
@@ -798,7 +804,7 @@ function response_msg(msg) {
             cmd.help();
             break;
         }
-        case "about": { 
+        case "about": {
             cmd.about();
             break;
         }
@@ -835,16 +841,34 @@ function response_msg(msg) {
                 cmd.conf_set();
             break;
         }
-        
+
     }
 
 }
+function handle_child() {
+    var child = spawn(process.argv[0], [process.argv[1], "handled_child"], { stdio: ["ignore", process.stdout, process.stderr, "ipc"] });
+    child.on("close", (code, signal) => {
+        child.kill();
+        Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 500);
+        handle_child();
+    });
+    child.on("disconnect", () => child.kill());
+    child.on("error", () => child.kill());
+    child.on("exit", (code, signal) => child.kill());
+}
 
-function run_background() {
+process.on("uncaughtException", err => {
+    console.log("Global exception caught: " + err);
+    restart_bot();
+});
+process.on("unhandledRejection", err => {
+    console.log("Global rejection handled: " + err);
+    restart_bot();
+});
+client.on("message", response_msg);
 
-    if (process.argv.length < 3 || process.argv[2] !== "background")
-        return;
 
+if (process.argv.length >= 3 && process.argv[2] === "background") {
     if (process.platform === "linux") {
         let service = "[Unit]\n" +
             "Description=discord_cryptobot service\n" +
@@ -878,17 +902,11 @@ function run_background() {
     }
     process.exit();
 }
-run_background();
 
-process.on("uncaughtException", err => {
-    console.log("Global exception caught: " + err);
-    restart_bot();
-});
-process.on("unhandledRejection", err => {
-    console.log("Global rejection handled: " + err);
-    restart_bot();
-});
+if (process.argv.length >= 3 && process.argv[2] === "handled_child")
+    client.login(conf.token).then(() => console.log("Bot ready!"));
+else 
+    handle_child();
 
-client.on("message", response_msg);
-client.login(conf.token).then(() => console.log("Bot ready!"));
+
 
