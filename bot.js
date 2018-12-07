@@ -13,6 +13,7 @@ var client = new Discord.Client();
 
 /* TODO
     - Add a way to run on background on win32 systems
+    - modify price_avg() to return an avg based on a weight (more volume = more weight)
     - !earnings [optional amount of MNs]
     - User specific options:
         - !my-address-add <addr>
@@ -210,7 +211,6 @@ function get_ticker(exchange) {
 
 }
 function price_avg() {
-
     return new Promise((resolve, reject) => {
         let promises = [];
         for (let ticker of conf.ticker)
@@ -249,6 +249,9 @@ function price_btc_usd() {
     });
 
 }
+function valid_request(req) {
+    return conf.requests[req] !== undefined && conf.requests[req].trim() !== "";
+}
 function earn_fields(coinday, avgbtc, priceusd) {
     const earn_value = (mult) => {
         return (coinday * mult).toFixed(4) + " " + conf.coin +
@@ -280,28 +283,7 @@ function earn_fields(coinday, avgbtc, priceusd) {
 }
 function get_config() {
     var str = fs.readFileSync(config_json_file, "utf8"); // for some reason is adding a invalid character at the beginning that causes a throw
-    var json = JSON.parse(str.slice(str.indexOf("{")));
-    json.cmd = {
-        stats: {
-            stats: json.requests.blockcount !== "" || json.requests.mncount !== "" || json.requests.supply !== "",
-            blockcount: json.requests.blockcount !== "",
-            mncount: json.requests.mncount !== "",
-            supply: json.requests.supply !== "",
-            collateral: json.requests.blockcount !== "",
-            mnreward: json.requests.blockcount !== "",
-            powreward: json.requests.blockcount !== "",
-            posreward: json.requests.blockcount !== "",
-            locked: json.requests.blockcount !== "" && json.requests.mncount !== "" && json.requests.supply !== "",
-            avgmnreward: json.requests.mncount !== "",
-            nextstage: json.requests.blockcount !== ""
-        },
-        earnings: json.requests.blockcount !== "" && json.requests.mncount !== "",
-        balance: json.requests.balance !== "",
-        blockindex: json.requests.blockhash !== "" && json.requests.blockindex !== "",
-        blockhash: json.requests.blockhash !== "",
-        mining: json.requests.hashrate !== ""
-    };
-    return json;
+    return JSON.parse(str.slice(str.indexOf("{")));
 }
 function get_stage(blk) {
     for (let stage of conf.stages)
@@ -317,13 +299,6 @@ function synced_request(url) {
 }
 function bash_cmd(cmd) {
     return (process.platform === "win32" ? spawnSync("cmd.exe", ["/S", "/C", cmd]) : spawnSync("sh", ["-c", cmd])).stdout.toString();
-}
-function restart_bot() {
-    for (let i = 5; i > 0; i--) {
-        console.log("Restarting bot in " + i + " seconds..."); // just to avoid constant reset in case of constant crash cause no internet
-        Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 1000);
-    }
-    process.exit();
 }
 
 class BotCommand {
@@ -378,64 +353,70 @@ class BotCommand {
             new Promise((resolve, reject) => resolve(bash_cmd(conf.requests.mncount))),
             new Promise((resolve, reject) => resolve(bash_cmd(conf.requests.supply)))
         ]).then(([blockcount, mncount, supply]) => {
+            
+            let valid = {
+                blockcount: !isNaN(blockcount) && blockcount.trim() !== "",
+                mncount: !isNaN(mncount) && mncount.trim() !== "",
+                supply: !isNaN(supply) && supply.trim() !== ""
+            };
 
-            var stage = get_stage(blockcount);
-            var stg_index = conf.stages.indexOf(stage);
+            let stage = get_stage(blockcount);
+            let stg_index = conf.stages.indexOf(stage);
 
-            var embed = new Discord.RichEmbed();
+            let embed = new Discord.RichEmbed();
             embed.title = conf.coin + " Stats";
             embed.color = conf.color.coininfo;
             embed.timestamp = new Date();
 
             for (let stat of conf.statorder) {
                 switch (stat) {
-                    case "blockcount": { // requires: blockcount
-                        if (conf.cmd.stats.blockcount)
+                    case "blockcount": {
+                        if (valid.blockcount)
                             embed.addField("Block Count", blockcount, true);
                         break;
                     }
-                    case "mncount": { // requires: mncount
-                        if (conf.cmd.stats.mncount)
+                    case "mncount": {
+                        if (valid.mncount)
                             embed.addField("MN Count", mncount, true);
                         break;
                     }
-                    case "supply": { // requires: supply
-                        if (conf.cmd.stats.supply)
+                    case "supply": { 
+                        if (valid.supply)
                             embed.addField("Supply", parseFloat(supply).toFixed(4).replace(/(\d)(?=(?:\d{3})+(?:\.|$))|(\.\d{4}?)\d*$/g, (m, s1, s2) => s2 || s1 + ',') + " " + conf.coin, true);
                         break;
                     }
-                    case "collateral": { // requires: blockcount
-                        if (conf.cmd.stats.collateral)
+                    case "collateral": { 
+                        if (valid.blockcount)
                             embed.addField("Collateral", stage.coll + " " + conf.coin, true);
                         break;
                     }
-                    case "mnreward": { // requires: blockcount
-                        if (conf.cmd.stats.mnreward)
+                    case "mnreward": { 
+                        if (valid.blockcount)
                             embed.addField("MN Reward", stage.mn + " " + conf.coin, true);
                         break;
                     }
-                    case "powreward": { // requires: blockcount
-                        if (stage.pow !== undefined && conf.cmd.stats.powreward)
+                    case "powreward": { 
+                        if (stage.pow !== undefined && valid.blockcount)
                             embed.addField("POW Reward", stage.pow + " " + conf.coin, true);
                         break;
                     }
-                    case "posreward": { // requires: blockcount
-                        if (stage.pos !== undefined && conf.cmd.stats.posreward)
+                    case "posreward": {
+                        if (stage.pos !== undefined && valid.blockcount)
                             embed.addField("POS Reward", stage.pos + " " + conf.coin, true);
                         break;
                     }
-                    case "locked": { // requires: blockcount, mncount, supply
-                        if (conf.cmd.stats.locked)
+                    case "locked": { 
+                        if (valid.blockcount && valid.mncount && valid.supply)
                             embed.addField("Locked", (mncount * stage.coll).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",") + " " + conf.coin + " (" + (mncount * stage.coll / supply * 100).toFixed(2) + "%)", true);
                         break;
                     }
-                    case "avgmnreward": { // requires: mncount
-                        if (conf.cmd.stats.avgmnreward)
+                    case "avgmnreward": {
+                        if (valid.mncount)
                             embed.addField("Avg. MN Reward", parseInt(mncount / (86400 / conf.blocktime)) + "d " + parseInt(mncount / (3600 / conf.blocktime) % 24) + "h " + parseInt(mncount / (60 / conf.blocktime) % 60) + "m", true);
                         break;
                     }
-                    case "nextstage": { // requires: blockcount
-                        if (conf.cmd.stats.nextstage)
+                    case "nextstage": { 
+                        if (valid.blockcount)
                             embed.addField("Next Stage", parseInt((conf.stages[stg_index].block - blockcount) / (86400 / conf.blocktime)) + "d " + parseInt((conf.stages[stg_index].block - blockcount) / (3600 / conf.blocktime) % 24) + "h " + parseInt((conf.stages[stg_index].block - blockcount) / (60 / conf.blocktime) % 60) + "m", true);
                         break;
                     }
@@ -445,6 +426,13 @@ class BotCommand {
                     }
                 }
             }
+            
+            if (valid_request("blockcount") && !valid.blockcount)
+                embed.description = (embed.description === undefined ? "" : embed.description) + "There seems to be a problem with the `blockcount` request\n";
+            if (valid_request("mncount") && !valid.mncount)
+                embed.description = (embed.description === undefined ? "" : embed.description) + "There seems to be a problem with the `mncount` request\n";
+            if (valid_request("supply") && !valid.supply)
+                embed.description = (embed.description === undefined ? "" : embed.description) + "There seems to be a problem with the `supply` request";
 
             this.msg.channel.send(embed);
 
@@ -459,21 +447,39 @@ class BotCommand {
             new Promise((resolve, reject) => resolve(conf.earnsbtc || conf.earnsusd ? price_avg() : 0)),
             new Promise((resolve, reject) => resolve(conf.earnsusd ? price_btc_usd() : 0))
         ]).then(([blockcount, mncount, avgbtc, priceusd]) => {
-            let stage = get_stage(blockcount);
-            let coinday = 86400 / conf.blocktime / mncount * stage.mn;
-            this.msg.channel.send({
-                embed: {
-                    title: conf.coin + " Earnings",
-                    color: conf.color.coininfo,
-                    fields: [
-                        {
-                            name: "ROI",
-                            value: (36500 / (stage.coll / coinday)).toFixed(2) + "% / " + (stage.coll / coinday).toFixed(2) + " days"
-                        }
-                    ].concat(earn_fields(coinday, avgbtc, priceusd)),
-                    timestamp: new Date()
-                }
-            });
+
+            let valid = {
+                blockcount: !isNaN(blockcount) && blockcount.trim() !== "",
+                mncount: !isNaN(mncount) && mncount.trim() !== "",
+            };
+
+            if (valid.blockcount && valid.mncount) {
+                let stage = get_stage(blockcount);
+                let coinday = 86400 / conf.blocktime / mncount * stage.mn;
+                this.msg.channel.send({
+                    embed: {
+                        title: conf.coin + " Earnings",
+                        color: conf.color.coininfo,
+                        fields: [
+                            {
+                                name: "ROI",
+                                value: (36500 / (stage.coll / coinday)).toFixed(2) + "% / " + (stage.coll / coinday).toFixed(2) + " days"
+                            }
+                        ].concat(earn_fields(coinday, avgbtc, priceusd)),
+                        timestamp: new Date()
+                    }
+                });
+            }
+            else {
+                this.msg.channel.send({
+                    embed: {
+                        title: conf.coin + " Earnings",
+                        color: conf.color.coininfo,
+                        description: (valid.blockcount ? "" : "There seems to be a problem with the `blockcount` request\n") + (valid.mncount ? "" : "There seems to be a problem with the `mncount` request"),
+                        timestamp: new Date()
+                    }
+                });
+            }
         });
 
     }
@@ -507,17 +513,35 @@ class BotCommand {
                 new Promise((resolve, reject) => resolve(conf.earnsbtc || conf.earnsusd ? price_avg() : 0)),
                 new Promise((resolve, reject) => resolve(conf.earnsusd ? price_btc_usd() : 0))
             ]).then(([blockcount, total_hr, avgbtc, priceusd]) => {
-                let stage = get_stage(blockcount);
-                let coinday = 86400 / conf.blocktime * stage.pow * calc_multiplier() / total_hr;
-                this.msg.channel.send({
-                    embed: {
-                        title: conf.coin + " Mining (" + hr + " " + letter + "H/s)",
-                        color: conf.color.coininfo,
-                        description: stage.pow === undefined ? "POW disabled in the current coin stage" : "",
-                        fields: stage.pow === undefined ? [] : earn_fields(coinday, avgbtc, priceusd),
-                        timestamp: new Date()
-                    }
-                });
+
+                let valid = {
+                    blockcount: !isNaN(blockcount) && blockcount.trim() !== "",
+                    mncount: !isNaN(total_hr) && total_hr.trim() !== "",
+                };
+
+                if (valid.blockcount && valid.mncount) {
+                    let stage = get_stage(blockcount);
+                    let coinday = 86400 / conf.blocktime * stage.pow * calc_multiplier() / total_hr;
+                    this.msg.channel.send({
+                        embed: {
+                            title: conf.coin + " Mining (" + hr + " " + letter + "H/s)",
+                            color: conf.color.coininfo,
+                            description: stage.pow === undefined ? "POW disabled in the current coin stage" : "",
+                            fields: stage.pow === undefined ? [] : earn_fields(coinday, avgbtc, priceusd),
+                            timestamp: new Date()
+                        }
+                    });
+                }
+                else {
+                    this.msg.channel.send({
+                        embed: {
+                            title: conf.coin + " Mining (" + hr + " " + letter + "H/s)",
+                            color: conf.color.coininfo,
+                            description: (valid.blockcount ? "" : "There seems to be a problem with the `blockcount` request\n") + (valid.hashrate ? "" : "There seems to be a problem with the `hashrate` request"),
+                            timestamp: new Date()
+                        }
+                    });
+                }
             });
         }
         else {
@@ -619,9 +643,6 @@ class BotCommand {
 
     help() {
 
-        const blocked_cmd = (cmd, str) => {
-            return !cmd ? "*blocked command*" : str;
-        };
         this.msg.channel.send({
             embed: {
                 title: "**Available commands**",
@@ -635,16 +656,16 @@ class BotCommand {
                     {
                         name: "Coin Info:",
                         value:
-                            " - **" + conf.prefix + "stats** : "    + blocked_cmd(conf.cmd.stats.stats, "get the current stats of the " + conf.coin + " blockchain") + "\n" +
-                            " - **" + conf.prefix + "earnings** : " + blocked_cmd(conf.cmd.earnings,    "get the expected " + conf.coin + " earnings per masternode to get an idea of how close you are to getting a lambo") + "\n" +
-                            " - **" + conf.prefix + "mining <hashrate> [K/M/G/T]** : " + blocked_cmd(conf.cmd.earnings, "get the expected " + conf.coin + " earnings with the given hashrate, aditionally you can put the hashrate multiplier (K = KHash/s, M = MHash/s, ...)")
+                            " - **" + conf.prefix + "stats** : get the current stats of the " + conf.coin + " blockchain\n" +
+                            " - **" + conf.prefix + "earnings** : get the expected earnings per masternode to get an idea of how close you are to getting a lambo\n" +
+                            " - **" + conf.prefix + "mining <hashrate> [K/M/G/T]** : get the expected earnings with the given hashrate, aditionally you can put the hashrate multiplier (K = KHash/s, M = MHash/s, ...)"
                     },
                     {
                         name: "Explorer",
                         value:
-                            " - **" + conf.prefix + "balance <address>** : "    + blocked_cmd(conf.cmd.balance,    "show the balance, sent and received of the given address") + "\n" +
-                            " - **" + conf.prefix + "block-index <number>** : " + blocked_cmd(conf.cmd.blockindex, "show the info of the block by its index") + "\n" +
-                            " - **" + conf.prefix + "block-hash <hash>** : "    + blocked_cmd(conf.cmd.blockhash,  "show the info of the block by its hash")
+                            " - **" + conf.prefix + "balance <address>** : show the balance, sent and received of the given address\n" +
+                            " - **" + conf.prefix + "block-index <number>** : show the info of the block by its index\n" +
+                            " - **" + conf.prefix + "block-hash <hash>** : show the info of the block by its hash"
                     },
                     {
                         name: "Other:",
@@ -752,6 +773,18 @@ function response_msg(msg) {
         });
         return true;
     };
+    const enabled_cmd = (name, valid) => {
+        if (valid)
+            return true;
+        msg.channel.send({
+            embed: {
+                title: "**" + conf.prefix + name + " command**",
+                color: conf.color.other,
+                description: conf.prefix + name + " disabled in the bot configuration"
+            }
+        });
+        return false;
+    };
 
     switch (args[0]) {
 
@@ -763,19 +796,19 @@ function response_msg(msg) {
         }
 
         // Coin Info:
-
+            
         case "stats": {
-            if (conf.cmd.stats.stats)
+            if (enabled_cmd("stats", valid_request("blockcount") || valid_request("mncount") || valid_request("supply")))
                 cmd.stats();
             break;
         }
         case "earnings": {
-            if (conf.cmd.earnings)
+            if (enabled_cmd("earnings", valid_request("blockcount") && valid_request("mncount")))
                 cmd.earnings();
             break;
         }
         case "mining": {
-            if (conf.cmd.mining && !error_noparam(2, "You need to provide amount of hashrate"))
+            if (enabled_cmd("mining", valid_request("blockcount") && valid_request("hashrate")) && !error_noparam(2, "You need to provide amount of hashrate"))
                 cmd.mining(args[1], args[2]);
             break;
         }
@@ -783,17 +816,17 @@ function response_msg(msg) {
         // Explorer:
 
         case "balance": {
-            if (conf.cmd.balance && !error_noparam(2, "You need to provide an address"))
+            if (enabled_cmd("balance", valid_request("balance")) && !error_noparam(2, "You need to provide an address"))
                 cmd.balance(args[1]);
             break;
         }
         case "block-index": {
-            if (conf.cmd.blockindex && !error_noparam(2, "You need to provide a block number"))
+            if (enabled_cmd("block-index", valid_request("blockhash") && valid_request("blockindex")) && !error_noparam(2, "You need to provide a block number"))
                 cmd.block_index(args[1]);
             break;
         }
         case "block-hash": {
-            if (conf.cmd.blockhash && !error_noparam(2, "You need to provide a block hash"))
+            if (enabled_cmd("block-hash", valid_request("blockhash")) && !error_noparam(2, "You need to provide a block hash"))
                 cmd.block_hash(args[1]);
             break;
         }
@@ -849,7 +882,10 @@ function handle_child() {
     var child = spawn(process.argv[0], [process.argv[1], "handled_child"], { stdio: ["ignore", process.stdout, process.stderr, "ipc"] });
     child.on("close", (code, signal) => {
         child.kill();
-        Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 500);
+        for (let i = 5; i > 0; i--) {
+            console.log("Restarting bot in " + i + " seconds..."); // just to avoid constant reset in case of constant crash cause no network is down
+            Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 1000);
+        }
         handle_child();
     });
     child.on("disconnect", () => child.kill());
@@ -859,11 +895,11 @@ function handle_child() {
 
 process.on("uncaughtException", err => {
     console.log("Global exception caught: " + err);
-    restart_bot();
+    process.exit();
 });
 process.on("unhandledRejection", err => {
     console.log("Global rejection handled: " + err);
-    restart_bot();
+    process.exit();
 });
 client.on("message", response_msg);
 
