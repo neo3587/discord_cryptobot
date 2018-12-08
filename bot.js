@@ -14,7 +14,6 @@ var client = new Discord.Client();
 /* TODO
     - Add a way to run on background on win32 systems
     - modify price_avg() to return an avg based on a weight (more volume = more weight)
-    - !earnings [optional amount of MNs]
     - User specific options:
         - !my-address-add <addr>
         - !my-address-del <addr>
@@ -439,7 +438,7 @@ class BotCommand {
         });
 
     }
-    earnings() {
+    earnings(mns) {
 
         Promise.all([
             new Promise((resolve, reject) => resolve(bash_cmd(conf.requests.blockcount))),
@@ -450,22 +449,36 @@ class BotCommand {
 
             let valid = {
                 blockcount: !isNaN(blockcount) && blockcount.trim() !== "",
-                mncount: !isNaN(mncount) && mncount.trim() !== "",
+                mncount: !isNaN(mncount) && mncount.trim() !== ""
             };
 
             if (valid.blockcount && valid.mncount) {
+                mns = mns !== undefined && mns > 0 ? mns : 1;
                 let stage = get_stage(blockcount);
                 let coinday = 86400 / conf.blocktime / mncount * stage.mn;
                 this.msg.channel.send({
                     embed: {
-                        title: conf.coin + " Earnings",
+                        title: conf.coin + " Earnings" + (mns !== 1 ? " (" + mns + " MNs)" : ""),
                         color: conf.color.coininfo,
                         fields: [
                             {
                                 name: "ROI",
-                                value: (36500 / (stage.coll / coinday)).toFixed(2) + "% / " + (stage.coll / coinday).toFixed(2) + " days"
+                                value: (36500 / (stage.coll / coinday)).toFixed(2) + "% / " + (stage.coll / coinday).toFixed(2) + " days",
+                                inline: mns !== 1
                             }
-                        ].concat(earn_fields(coinday, avgbtc, priceusd)),
+                        ].concat(mns === 1 ? [] : [
+                            {
+                                name: "Time to get 1 MN",
+                                value: (stage.coll / (coinday * mns)).toFixed(2) + " days",
+                                inline: true
+                            },
+                            {
+                                name: "\u200b",
+                                value: "\u200b",
+                                inline: true
+                            }
+                        ])
+                        .concat(earn_fields(coinday * mns, avgbtc, priceusd)),
                         timestamp: new Date()
                     }
                 });
@@ -516,7 +529,7 @@ class BotCommand {
 
                 let valid = {
                     blockcount: !isNaN(blockcount) && blockcount.trim() !== "",
-                    mncount: !isNaN(total_hr) && total_hr.trim() !== "",
+                    mncount: !isNaN(total_hr) && total_hr.trim() !== ""
                 };
 
                 if (valid.blockcount && valid.mncount) {
@@ -657,7 +670,7 @@ class BotCommand {
                         name: "Coin Info:",
                         value:
                             " - **" + conf.prefix + "stats** : get the current stats of the " + conf.coin + " blockchain\n" +
-                            " - **" + conf.prefix + "earnings** : get the expected earnings per masternode to get an idea of how close you are to getting a lambo\n" +
+                            " - **" + conf.prefix + "earnings [amount of MNs]** : get the expected earnings per masternode, aditionally you can put the amount of MNs\n" +
                             " - **" + conf.prefix + "mining <hashrate> [K/M/G/T]** : get the expected earnings with the given hashrate, aditionally you can put the hashrate multiplier (K = KHash/s, M = MHash/s, ...)"
                     },
                     {
@@ -804,7 +817,7 @@ function response_msg(msg) {
         }
         case "earnings": {
             if (enabled_cmd("earnings", valid_request("blockcount") && valid_request("mncount")))
-                cmd.earnings();
+                cmd.earnings(args[1]);
             break;
         }
         case "mining": {
@@ -941,8 +954,7 @@ if (process.argv.length >= 3 && process.argv[2] === "background") {
 
 if (process.argv.length >= 3 && process.argv[2] === "handled_child")
     client.login(conf.token).then(() => console.log("Bot ready!"));
-else 
+else
     handle_child();
-
 
 
