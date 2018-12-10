@@ -1,4 +1,9 @@
 
+/*
+    Author: neo3587
+    Source: https://github.com/neo3587/discord_cryptobot
+*/
+
 const Discord = require("discord.js");
 const XMLHttpRequest = require("xmlhttprequest").XMLHttpRequest;
 const fs = require("fs");
@@ -253,9 +258,9 @@ function valid_request(req) {
 }
 function earn_fields(coinday, avgbtc, priceusd) {
     const earn_value = (mult) => {
-        return (coinday * mult).toFixed(4) + " " + conf.coin +
-            (conf.earnsbtc ? "\n" + (coinday * mult * avgbtc).toFixed(8) + " BTC" : "") +
-            (conf.earnsusd ? "\n" + (coinday * mult * avgbtc * priceusd).toFixed(2) + " USD" : "");
+        return (coinday * mult).toFixed(4) + " " + conf.coin + "\n" +
+            (coinday * mult * avgbtc).toFixed(8) + " BTC\n" +
+            (coinday * mult * avgbtc * priceusd).toFixed(2) + " USD";
     };
     return [
         {
@@ -443,8 +448,8 @@ class BotCommand {
         Promise.all([
             new Promise((resolve, reject) => resolve(bash_cmd(conf.requests.blockcount))),
             new Promise((resolve, reject) => resolve(bash_cmd(conf.requests.mncount))),
-            new Promise((resolve, reject) => resolve(conf.earnsbtc || conf.earnsusd ? price_avg() : 0)),
-            new Promise((resolve, reject) => resolve(conf.earnsusd ? price_btc_usd() : 0))
+            new Promise((resolve, reject) => resolve(price_avg())),
+            new Promise((resolve, reject) => resolve(price_btc_usd()))
         ]).then(([blockcount, mncount, avgbtc, priceusd]) => {
 
             let valid = {
@@ -463,22 +468,21 @@ class BotCommand {
                         fields: [
                             {
                                 name: "ROI",
-                                value: (36500 / (stage.coll / coinday)).toFixed(2) + "% / " + (stage.coll / coinday).toFixed(2) + " days",
-                                inline: mns !== 1
+                                value: (36500 / (stage.coll / coinday)).toFixed(2) + "%\n" + (stage.coll / coinday).toFixed(2) + " days",
+                                inline: true
+                            },
+                            {
+                                name: "MN Price",
+                                value: (stage.coll * avgbtc).toFixed(8) + " BTC\n" + (stage.coll * avgbtc * priceusd).toFixed(2) + " USD",
+                                inline: true
                             }
-                        ].concat(mns === 1 ? [] : [
+                        ].concat(mns === 1 ? [{ name: "\u200b", value: "\u200b", inline: true }] : [
                             {
                                 name: "Time to get 1 MN",
                                 value: (stage.coll / (coinday * mns)).toFixed(2) + " days",
                                 inline: true
-                            },
-                            {
-                                name: "\u200b",
-                                value: "\u200b",
-                                inline: true
                             }
-                        ])
-                        .concat(earn_fields(coinday * mns, avgbtc, priceusd)),
+                        ]).concat(earn_fields(coinday * mns, avgbtc, priceusd)),
                         timestamp: new Date()
                     }
                 });
@@ -523,8 +527,8 @@ class BotCommand {
             Promise.all([
                 new Promise((resolve, reject) => resolve(bash_cmd(conf.requests.blockcount))),
                 new Promise((resolve, reject) => resolve(bash_cmd(conf.requests.hashrate))),
-                new Promise((resolve, reject) => resolve(conf.earnsbtc || conf.earnsusd ? price_avg() : 0)),
-                new Promise((resolve, reject) => resolve(conf.earnsusd ? price_btc_usd() : 0))
+                new Promise((resolve, reject) => resolve(price_avg())),
+                new Promise((resolve, reject) => resolve(price_btc_usd()))
             ]).then(([blockcount, total_hr, avgbtc, priceusd]) => {
 
                 let valid = {
@@ -754,11 +758,34 @@ class BotCommand {
 
 }
 
-function response_msg(msg) {
+function handle_child() {
+    var child = spawn(process.argv[0], [process.argv[1], "handled_child"], { stdio: ["ignore", process.stdout, process.stderr, "ipc"] });
+    child.on("close", (code, signal) => {
+        child.kill();
+        for (let i = 5; i > 0; i--) {
+            console.log("Restarting bot in " + i + " seconds..."); // just to avoid constant reset in case of constant crash cause no network is down
+            Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 1000);
+        }
+        handle_child();
+    });
+    child.on("disconnect", () => child.kill());
+    child.on("error", () => child.kill());
+    child.on("exit", (code, signal) => child.kill());
+}
+
+process.on("uncaughtException", err => {
+    console.log("Global exception caught: " + err);
+    process.exit();
+});
+process.on("unhandledRejection", err => {
+    console.log("Global rejection handled: " + err);
+    process.exit();
+});
+client.on("message", msg => {
 
     if (conf.channel.length && !conf.channel.includes(msg.channel.id) || !msg.content.startsWith(conf.prefix) || msg.author.bot)
         return;
-
+    
     var args = msg.content.slice(conf.prefix.length).split(" ");
     var cmd = new BotCommand(msg);
 
@@ -809,7 +836,7 @@ function response_msg(msg) {
         }
 
         // Coin Info:
-            
+
         case "stats": {
             if (enabled_cmd("stats", valid_request("blockcount") || valid_request("mncount") || valid_request("supply")))
                 cmd.stats();
@@ -890,31 +917,7 @@ function response_msg(msg) {
 
     }
 
-}
-function handle_child() {
-    var child = spawn(process.argv[0], [process.argv[1], "handled_child"], { stdio: ["ignore", process.stdout, process.stderr, "ipc"] });
-    child.on("close", (code, signal) => {
-        child.kill();
-        for (let i = 5; i > 0; i--) {
-            console.log("Restarting bot in " + i + " seconds..."); // just to avoid constant reset in case of constant crash cause no network is down
-            Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 1000);
-        }
-        handle_child();
-    });
-    child.on("disconnect", () => child.kill());
-    child.on("error", () => child.kill());
-    child.on("exit", (code, signal) => child.kill());
-}
-
-process.on("uncaughtException", err => {
-    console.log("Global exception caught: " + err);
-    process.exit();
 });
-process.on("unhandledRejection", err => {
-    console.log("Global rejection handled: " + err);
-    process.exit();
-});
-client.on("message", response_msg);
 
 
 if (process.argv.length >= 3 && process.argv[2] === "background") {
