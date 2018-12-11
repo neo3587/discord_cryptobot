@@ -156,6 +156,8 @@ NOTE 2: Feel free to ask for adding support to a concrete exchange.
 
 # Additional
 
+If you're too lazy or just not sure how to make a profile, I can make one for your cryptocurrency for a very tiny fee.
+
 ```
 BTC Donations:   3HE1kwgHEWvxBa38NHuQbQQrhNZ9wxjhe7
 BCARD Donations: BQmTwK685ajop8CFY6bWVeM59rXgqZCTJb
