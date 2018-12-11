@@ -33,14 +33,22 @@ node bot.js background
 # Bot commands
 
 - **!price:** Shows the last price, volume (in BTC), ask, bid and a link to the exchange for every exchange where the coin is listed.
+
 - **!stats:** Shows the block count, MN count, supply, collateral, MN reward, POS reward, Locked coins and agerage MN reward frecuency.
-- **!earnings:** Shows the ROI (in percentage and days) and the daily/weekly/monthly/yearly earnings of your cryptocurrency.
+- **!earnings ```[amount_on_mns]```:** Shows the ROI (in percentage and days), the MN price, the daily/weekly/monthly/yearly earnings for your cryptocurrency and optionally you can input the amount of mns to calculate the earnings.
+- **!mining ```<number>``` ```[K/M/G/T]```:** Shows the expected earnings with the given hashrate, optionally you can use K,M,G or T to indicate the multiplier, example: ```!mining 500``` => asks for 500 H/s, ```!mining 20 M``` => asks for 20 MH/s, etc.
+
 - **!balance ```<address>```:** Shows the sent, received and current balance of the given address.
 - **!block-index ```<number>```:** Shows the block stats of the given block number.
 - **!block-hash ```<hash>```:** Shows the block stats of the given block hash.
-- **!mining ```<number>``` ```[K/M/G/T]```:** Shows the expected earnings with the given hashrate, optionally you can use K,M,G or T to indicate the multiplier, example: ```!mining 500``` => asks for 500 H/s, ```!mining 20 M``` => asks for 20 MH/s, etc.
+
+- **!my-address-add ```<address>```:** Adds the given address to the user assigned addresses list.
+- **!my-address-del ```<address>```:** Removes the given address from the user assigned addresses list.
+- **!my-balance:** Shows the sent, received and current balance of user.
+
 - **!help:** Shows every available command.
 - **!about:** Shows the bot info.
+
 - **!conf-get:** Receive a dm with the config file, requires devs permissions (see **Bot configuration**).
 - **!conf-set:** Receive a dm asking to drag and drop a update of the config file, requires devs permissions (see **Bot configuration**).
 
@@ -83,7 +91,7 @@ You'll have to modify the "config.json" file to make it fit with your cryptocurr
     }
 ]
 ```
-- **requests:** The bash commands and/or urls used to get the data for **!stats**, **!earnings**, **!balance**, **!block-index**, **!block-hash** and **!mining**. Leaving a empty string will block the bot commands that makes use of the data. It's expected to use RPC commands and explorer urls, but you can customize them to retrieve the data from other sources (Example: "blockcount": "customProgramToGetBlockCount.exe"), example of typical requests:
+- **requests:** The bash commands and/or urls used to get the data for **!stats**, **!earnings**, **!balance**, **!block-index**, **!block-hash** and **!mining**. Leaving a empty string or removing the parameter will block or partially block the bot commands that makes use of the data. It's expected to use RPC commands and explorer urls, but you can customize them to retrieve the data from other sources (Example: "blockcount": "customProgramToGetBlockCount.exe"), example of typical requests:
 <pre>
 "requests": {
     "blockcount": "mywalletname-cli getblockcount",
@@ -119,11 +127,12 @@ Important note if you customize the requests:
   ]
 ```
 - **hidenotsupported**: Hide the ticker values from exchanges APIs that doesn't support that feature instead of showing "Not Supported".
+- **userspecific:** Enable the user specific commands (`!my-address-add`, `!my-address-del`, `!my-balance`).
 - **sourcecode:** You don't need to touch this, it's just in case I change the repo in the future.
 - **channel:** List of the ids of the channels where the bot will listen and reply the commands (leaving the list empty will listen all the channels).
 - **prefix:** The initial character for the commands.
 - **coin:** The name of your coin.
-- **blocktime:** Block time in seconds (used to calculate the earnings).
+- **blocktime:** Block time in seconds (used for some calculations).
 - **token:** The token of your bot.
 
 NOTE: The token on config.json is just an example, not the real one (for obvious reasons), use yours to work with your discord server.
