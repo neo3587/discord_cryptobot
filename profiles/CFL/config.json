@@ -131,6 +131,7 @@
     "nextstage"
   ],
   "hidenotsupported": false,
+  "userspecific": true,
   "sourcecode": "https://github.com/neo3587/discord_cryptobot",
   "channel": [ "519573062539149322" ],
   "prefix": "!",

@@ -12,21 +12,19 @@ const spawnSync = require("child_process").spawnSync;
 const spawn = require("child_process").spawn;
 
 const config_json_file = path.dirname(process.argv[1]) + "/config.json"; 
+const users_addr_folder = path.dirname(process.argv[1]) + "/.db_users_addr";
+//const users_mn_folder = path.dirname(process.argv[1]) + "/.db_users_mn";
+
 var conf = get_config();
 var client = new Discord.Client();
 
 
 /* TODO
-    - Add a way to run on background on win32 systems
-    - modify price_avg() to return an avg based on a weight (more volume = more weight)
     - User specific options:
-        - !my-address-add <addr>
-        - !my-address-del <addr>
-        - !my-balance : show individual address balance + total
         # not sure if the following will be possible by only using the explorer => wallet : listmasternodes [addr]
         - !my-masternode-add <mn_addr> 
         - !my-masternode-del <mn_addr>
-        - !my-earnings : show also the nº of MNs, and if a MN status != ENABLED
+        - !my-earnings : show also the nº of MNs, and status
 */
 
 
@@ -58,7 +56,6 @@ class ExchangeData {
 }
 
 function get_ticker(exchange) {
-
     return new Promise((resolve, reject) => {
 
         const rg_replace = (str, lowercase = false) => {
@@ -212,7 +209,6 @@ function get_ticker(exchange) {
         }
         
     });
-
 }
 function price_avg() {
     return new Promise((resolve, reject) => {
@@ -227,7 +223,7 @@ function price_avg() {
                     len++;
                 }
             }
-            resolve(sum / len);
+            resolve(sum / Math.max(len, 1));
         });
     });
 }
@@ -304,11 +300,20 @@ function synced_request(url) {
 function bash_cmd(cmd) {
     return (process.platform === "win32" ? spawnSync("cmd.exe", ["/S", "/C", cmd]) : spawnSync("sh", ["-c", cmd])).stdout.toString();
 }
+function create_no_exists(path, file = false) {
+    if (!fs.existsSync(path)) {
+        if (file)
+            fs.writeFileSync(path, "")
+        else
+            fs.mkdirSync(path);
+    }
+}
 
 class BotCommand {
 
+    /** @param {Discord.Message} msg - */
     constructor(msg) {
-        this.msg = msg;
+        this.msg = msg; 
     }
 
     price() {
@@ -376,12 +381,12 @@ class BotCommand {
                 switch (stat) {
                     case "blockcount": {
                         if (valid.blockcount)
-                            embed.addField("Block Count", blockcount, true);
+                            embed.addField("Block Count", blockcount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ","), true);
                         break;
                     }
                     case "mncount": {
                         if (valid.mncount)
-                            embed.addField("MN Count", mncount, true);
+                            embed.addField("MN Count", mncount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ","), true);
                         break;
                     }
                     case "supply": { 
@@ -391,7 +396,7 @@ class BotCommand {
                     }
                     case "collateral": { 
                         if (valid.blockcount)
-                            embed.addField("Collateral", stage.coll + " " + conf.coin, true);
+                            embed.addField("Collateral", stage.coll.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",") + " " + conf.coin, true);
                         break;
                     }
                     case "mnreward": { 
@@ -574,7 +579,6 @@ class BotCommand {
     }
 
     balance(addr) {
-
         try {
             let json = JSON.parse(bash_cmd(conf.requests.balance + addr));
             if (json["sent"] !== undefined && json["received"] !== undefined && json["balance"] !== undefined) {
@@ -589,17 +593,17 @@ class BotCommand {
                             },
                             {
                                 name: "Sent",
-                                value: json["sent"] + " " + conf.coin,
+                                value: json["sent"].toString().replace(/(\d)(?=(?:\d{3})+(?:\.|$))|(\.\d{4}?)\d*$/g, (m, s1, s2) => s2 || s1 + ',') + " " + conf.coin,
                                 inline: true
                             },
                             {
                                 name: "Received",
-                                value: json["received"] + " " + conf.coin,
+                                value: json["received"].toString().replace(/(\d)(?=(?:\d{3})+(?:\.|$))|(\.\d{4}?)\d*$/g, (m, s1, s2) => s2 || s1 + ',') + " " + conf.coin,
                                 inline: true
                             },
                             {
                                 name: "Balance",
-                                value: json["balance"] + " " + conf.coin,
+                                value: json["balance"].toString().replace(/(\d)(?=(?:\d{3})+(?:\.|$))|(\.\d{4}?)\d*$/g, (m, s1, s2) => s2 || s1 + ',') + " " + conf.coin,
                                 inline: true
                             }
                         ],
@@ -616,11 +620,10 @@ class BotCommand {
             embed: {
                 title: "Balance",
                 color: conf.color.explorer,
-                description: "Invalid address: " + addr,
+                description: "Invalid address: `" + addr + "`\n(Addresses that never received a single coin are considered as invalid)",
                 timestamp: new Date()
             }
         });
-
     }
     block_index(index) {
         this.block_hash(bash_cmd(conf.requests.blockindex + index));
@@ -658,8 +661,147 @@ class BotCommand {
 
     }
 
-    help() {
+    my_address_add(addr) {
+        create_no_exists(users_addr_folder);
+        try {
+            let json = JSON.parse(bash_cmd(conf.requests.balance + addr));
+            if (json["sent"] !== undefined && json["received"] !== undefined && json["balance"] !== undefined) {
+                let addrs_list = fs.existsSync(users_addr_folder + "/" + this.msg.author.id + ".txt") ?  fs.readFileSync(users_addr_folder + "/" + this.msg.author.id + ".txt", "utf8").split(/\r?\n/) : [];
+                if (addrs_list.indexOf(addr) === -1) {
+                    fs.writeFileSync(users_addr_folder + "/" + this.msg.author.id + ".txt", addrs_list.concat([addr]).join("\n"));
+                    this.msg.channel.send({
+                        embed: {
+                            title: "User Address Add",
+                            color: conf.color.explorer,
+                            description: "Address `" + addr + "` assigned to <@" + this.msg.author.id + ">",
+                            timestamp: new Date()
+                        }
+                    });
+                }
+                else {
+                    this.msg.channel.send({
+                        embed: {
+                            title: "User Address Add",
+                            color: conf.color.explorer,
+                            description: "Address `" + addr + "` already has been assigned to <@" + this.msg.author.id + ">",
+                            timestamp: new Date()
+                        }
+                    });
+                }
+                return;
+            }
+        }
+        catch (e) {
+            //
+        }
+        this.msg.channel.send({
+            embed: {
+                title: "User Address Add",
+                color: conf.color.explorer,
+                description: "Invalid address: `" + addr + "`\n(Addresses that never received a single coin are considered as invalid)",
+                timestamp: new Date()
+            }
+        });
+    }
+    my_address_del(addr) {
+        create_no_exists(users_addr_folder);
+        if (fs.existsSync(users_addr_folder + "/" + this.msg.author.id + ".txt")) {
+            let addrs_list = fs.readFileSync(users_addr_folder + "/" + this.msg.author.id + ".txt", "utf8").split(/\r?\n/);
+            let index = addrs_list.indexOf(addr);
+            if (index !== -1) {
+                addrs_list.splice(index, 1);
+                if (addrs_list.length)
+                    fs.writeFileSync(users_addr_folder + "/" + this.msg.author.id + ".txt", addrs_list.join("\n"));
+                else
+                    fs.unlinkSync(users_addr_folder + "/" + this.msg.author.id + ".txt");
+                this.msg.channel.send({
+                    embed: {
+                        title: "User Address Delete",
+                        color: conf.color.explorer,
+                        description: "Address `" + addr + "` deleted from <@" + this.msg.author.id + "> assigned addresses",
+                        timestamp: new Date()
+                    }
+                });
+            }
+            else {
+                this.msg.channel.send({
+                    embed: {
+                        title: "User Address Delete",
+                        color: conf.color.explorer,
+                        description: "Address `" + addr + "` isn't assgined to <@" + this.msg.author.id + ">\n\nYour current assigned addresses:\n`" + addrs_list.join("`, `") + "`",
+                        timestamp: new Date()
+                    }
+                });
+            }
+        }
+        else {
+            this.msg.channel.send({
+                embed: {
+                    title: "User Address Delete",
+                    color: conf.color.explorer,
+                    description: "There aren't addresses assigned to <@" + this.msg.author.id + ">",
+                    timestamp: new Date()
+                }
+            });
+        }
+    }
+    my_balance() {
+        create_no_exists(users_addr_folder);
+        if (fs.existsSync(users_addr_folder + "/" + this.msg.author.id + ".txt")) {
+            let sent = 0.00, recv = 0.00, bal = 0.00;
+            let addrs_list = fs.readFileSync(users_addr_folder + "/" + this.msg.author.id + ".txt", "utf-8").split(/\r?\n/);
+            for (let addr of addrs_list) {
+                try {
+                    let json = JSON.parse(bash_cmd(conf.requests.balance + addr));
+                    if (json["sent"] !== undefined && json["received"] !== undefined && json["balance"] !== undefined) {
+                        sent += parseFloat(json["sent"]);
+                        recv += parseFloat(json["received"]);
+                        bal += parseFloat(json["balance"]);
+                    }
+                }
+                catch (e) {
+                    //
+                }
+            }
+            this.msg.channel.send({
+                embed: {
+                    title: "User Balance",
+                    color: conf.color.explorer,
+                    fields: [
+                        {
+                            name: "Sent",
+                            value: sent.toString().replace(/(\d)(?=(?:\d{3})+(?:\.|$))|(\.\d{4}?)\d*$/g, (m, s1, s2) => s2 || s1 + ',') + " " + conf.coin,
+                            inline: true
+                        },
+                        {
+                            name: "Received",
+                            value: recv.toString().replace(/(\d)(?=(?:\d{3})+(?:\.|$))|(\.\d{4}?)\d*$/g, (m, s1, s2) => s2 || s1 + ',') + " " + conf.coin,
+                            inline: true
+                        },
+                        {
+                            name: "Balance",
+                            value: bal.toString().replace(/(\d)(?=(?:\d{3})+(?:\.|$))|(\.\d{4}?)\d*$/g, (m, s1, s2) => s2 || s1 + ',') + " " + conf.coin,
+                            inline: true
+                        }
+                    ],
+                    description: "`" + addrs_list.join("`, `") + "`",
+                    timestamp: new Date()
+                }
+            });
+        }
+        else {
+            this.msg.channel.send({
+                embed: {
+                    title: "User Balance",
+                    color: conf.color.explorer,
+                    description: "There aren't addresses assigned to <@" + this.msg.author.id + ">",
+                    timestamp: new Date()
+                }
+            });
+        }
+    }
 
+    help() {
         this.msg.channel.send({
             embed: {
                 title: "**Available commands**",
@@ -685,6 +827,13 @@ class BotCommand {
                             " - **" + conf.prefix + "block-hash <hash>** : show the info of the block by its hash"
                     },
                     {
+                        name: "User specific",
+                        value:
+                            " - **" + conf.prefix + "my-address-add <address>** : adds an address to your address list\n" +
+                            " - **" + conf.prefix + "my-address-del <address>** : removes an address from your address list\n" +
+                            " - **" + conf.prefix + "my-balance** : shows your total balance, sent and received"
+                    },
+                    {
                         name: "Other:",
                         value:
                             " - **" + conf.prefix + "help** : the command that you just used\n" +
@@ -699,10 +848,8 @@ class BotCommand {
                 ]
             }
         });
-
     }
     about() {
-
         const donate = { // don't be evil with this, please
             "BCARD": "BQmTwK685ajop8CFY6bWVeM59rXgqZCTJb",
             "SNO": "SZ4pQpuqq11EG7dw6qjgqSs5tGq3iTw2uZ",
@@ -720,7 +867,6 @@ class BotCommand {
                     "**BTC Donations (to author):** 3HE1kwgHEWvxBa38NHuQbQQrhNZ9wxjhe7"
             }
         });
-
     }
 
     conf_get() {
@@ -774,15 +920,21 @@ function handle_child() {
 }
 
 process.on("uncaughtException", err => {
-    console.log("Global exception caught: " + err);
+    console.log("Global exception caught:");
+    console.log("Name: " + err.name);
+    console.log("Message: " + err.message);
+    console.log("Stack:" + err.stack);
     process.exit();
 });
 process.on("unhandledRejection", err => {
-    console.log("Global rejection handled: " + err);
+    console.log("Global rejection handled:");
+    console.log("Name: " + err.name);
+    console.log("Message: " + err.message);
+    console.log("Stack:" + err.stack);
     process.exit();
 });
 client.on("message", msg => {
-
+    
     if (conf.channel.length && !conf.channel.includes(msg.channel.id) || !msg.content.startsWith(conf.prefix) || msg.author.bot)
         return;
     
@@ -790,7 +942,7 @@ client.on("message", msg => {
     var cmd = new BotCommand(msg);
 
     const error_noparam = (n, descr) => {
-        if (args.length >= n)
+        if (args.length > n)
             return false;
         msg.channel.send({
             embed: {
@@ -848,7 +1000,7 @@ client.on("message", msg => {
             break;
         }
         case "mining": {
-            if (enabled_cmd("mining", valid_request("blockcount") && valid_request("hashrate")) && !error_noparam(2, "You need to provide amount of hashrate"))
+            if (enabled_cmd("mining", valid_request("blockcount") && valid_request("hashrate")) && !error_noparam(1, "You need to provide amount of hashrate"))
                 cmd.mining(args[1], args[2]);
             break;
         }
@@ -856,21 +1008,39 @@ client.on("message", msg => {
         // Explorer:
 
         case "balance": {
-            if (enabled_cmd("balance", valid_request("balance")) && !error_noparam(2, "You need to provide an address"))
+            if (enabled_cmd("balance", valid_request("balance")) && !error_noparam(1, "You need to provide an address"))
                 cmd.balance(args[1]);
             break;
         }
         case "block-index": {
-            if (enabled_cmd("block-index", valid_request("blockhash") && valid_request("blockindex")) && !error_noparam(2, "You need to provide a block number"))
+            if (enabled_cmd("block-index", valid_request("blockhash") && valid_request("blockindex")) && !error_noparam(1, "You need to provide a block number"))
                 cmd.block_index(args[1]);
             break;
         }
         case "block-hash": {
-            if (enabled_cmd("block-hash", valid_request("blockhash")) && !error_noparam(2, "You need to provide a block hash"))
+            if (enabled_cmd("block-hash", valid_request("blockhash")) && !error_noparam(1, "You need to provide a block hash"))
                 cmd.block_hash(args[1]);
             break;
         }
 
+        // User specific:
+        
+        case "my-address-add": {
+            if (enabled_cmd("balance", conf.userspecific || valid_request("balance")) && !error_noparam(1, "You need to provide an address"))
+                cmd.my_address_add(args[1]);
+            break;
+        }
+        case "my-address-del": {
+            if (enabled_cmd("balance", conf.userspecific || valid_request("balance")) && !error_noparam(1, "You need to provide an address"))
+                cmd.my_address_del(args[1]);
+            break;
+        }
+        case "my-balance": {
+            if (enabled_cmd("balance", conf.userspecific || valid_request("balance")))
+                cmd.my_balance();
+            break;
+        }
+        
         // Other:
 
         case "help": {
@@ -959,5 +1129,4 @@ if (process.argv.length >= 3 && process.argv[2] === "handled_child")
     client.login(conf.token).then(() => console.log("Bot ready!"));
 else
     handle_child();
-
 
