@@ -127,7 +127,7 @@ Important note if you customize the requests:
   ]
 ```
 - **hidenotsupported**: Hide the ticker values from exchanges APIs that doesn't support that feature instead of showing "Not Supported".
-- **userspecific:** Enable the user specific commands (`!my-address-add`, `!my-address-del`, `!my-balance`).
+- **useraddrs:** Enable the user address commands (`!my-address-add`, `!my-address-del`, `!my-balance`).
 - **sourcecode:** You don't need to touch this, it's just in case I change the repo in the future.
 - **channel:** List of the ids of the channels where the bot will listen and reply the commands (leaving the list empty will listen all the channels).
 - **prefix:** The initial character for the commands.

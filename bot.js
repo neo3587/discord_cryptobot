@@ -801,6 +801,16 @@ class BotCommand {
         }
     }
 
+    my_masternode_add(addr) {
+        return;
+    }
+    my_masternode_del(addr) {
+        return;
+    }
+    my_earnings() {
+        return;
+    }
+
     help() {
         this.msg.channel.send({
             embed: {
@@ -1026,21 +1036,21 @@ client.on("message", msg => {
         // User specific:
         
         case "my-address-add": {
-            if (enabled_cmd("balance", conf.userspecific || valid_request("balance")) && !error_noparam(1, "You need to provide an address"))
+            if (enabled_cmd("my-address-add", conf.useraddrs || valid_request("balance")) && !error_noparam(1, "You need to provide an address"))
                 cmd.my_address_add(args[1]);
             break;
         }
         case "my-address-del": {
-            if (enabled_cmd("balance", conf.userspecific || valid_request("balance")) && !error_noparam(1, "You need to provide an address"))
+            if (enabled_cmd("my-address-del", conf.useraddrs || valid_request("balance")) && !error_noparam(1, "You need to provide an address"))
                 cmd.my_address_del(args[1]);
             break;
         }
         case "my-balance": {
-            if (enabled_cmd("balance", conf.userspecific || valid_request("balance")))
+            if (enabled_cmd("my-balance", conf.useraddrs || valid_request("balance")))
                 cmd.my_balance();
             break;
         }
-        
+
         // Other:
 
         case "help": {
