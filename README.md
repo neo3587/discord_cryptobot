@@ -8,7 +8,7 @@ First, you can use this guide to crate the bot: https://www.digitaltrends.com/ga
 
 The bot runs on Node.js, version 8.x or higher is recommended, it can be obtained here: https://nodejs.org/en/ 
 
-The bot can run on any machine, but the commands **!stats**, **!earnings**, **!block-index**, **!block-hash** and **!mining** will only work if there's a wallet that accepts RPC commands (per example the typical masternode on a Linux machine) or you make your way with urls or customized programs.
+The bot can run on any machine, but it's recommended to use a linux machine, since some commands may require a wallet that accepts RPC commands (almost all the commands can be run by calling the explorer API with `curl -s`).
 In case of using a Linux machine for running the bot, you can install Node.js with these 2 commands:
 ```
 curl -sL https://deb.nodesource.com/setup_8.x | sudo -E bash -
