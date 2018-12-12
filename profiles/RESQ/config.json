@@ -87,13 +87,14 @@
     }
   ],
   "requests": {
-    "blockcount": "curl -s http://159.69.112.3:3001/api/getblockcount",
-    "mncount": "curl -s http://159.69.112.3:3001/api/getmasternodecount",
+    "blockcount": "resq-cli getblockcount",
+    "mncount": "resq-cli masternode count",
     "supply": "curl -s http://159.69.112.3:3001/ext/getmoneysupply",
     "balance": "curl -s http://159.69.112.3:3001/ext/getaddress/",
-    "blockindex": "curl -s http://159.69.112.3:3001/api/getblockhash?index=",
-    "blockhash": "curl -s http://159.69.112.3:3001/api/getblock?hash=",
-    "hashrate": "curl -s http://159.69.112.3:3001/api/getnetworkhashps"
+    "blockindex": "resq-cli getblockhash ",
+    "blockhash": "resq-cli getblock ",
+    "hashrate": "resq-cli getnetworkhashps",
+    "mnstat": "bash resq_mnstat.sh "
   },
   "statorder": [
     "blockcount",
@@ -109,6 +110,7 @@
   ],
   "hidenotsupported": false,
   "useraddrs": true,
+  "usermns": true,
   "sourcecode": "https://github.com/neo3587/discord_cryptobot",
   "channel": [ "477823123354550302" ],
   "prefix": "!",
