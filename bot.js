@@ -757,7 +757,7 @@ class BotCommand {
             let json = JSON.parse(bash_cmd(conf.requests.mnstat + addr));
             if (Array.isArray(json))
                 json = json[0];
-            if (json["status"] !== undefined && json["addr"] !== undefined) {
+            if (json["status"] !== undefined && json["addr"] === addr) {
                 let addrs_list = fs.existsSync(users_mn_folder + "/" + this.msg.author.id + ".txt") ? fs.readFileSync(users_mn_folder + "/" + this.msg.author.id + ".txt", "utf8").split(/\r?\n/) : [];
                 if (addrs_list.indexOf(addr) === -1) {
                     fs.writeFileSync(users_mn_folder + "/" + this.msg.author.id + ".txt", addrs_list.concat([addr]).join("\n"));

@@ -1,4 +1,6 @@
 #!/bin/bash
 
-mnres=$(resq-cli masternode list full $1 | awk '{print $5, $3}'| grep '[a-zA-Z0-9]')
-echo -e "{\"addr\":\"$(echo $mnres | awk '{print $1}')\",\"status\":\"$(echo $mnres | awk '{print $2}')\"}"
+mnres=$(resq-cli masternode list full $1 | grep -w $1 | grep -o '".*"' | sed 's/"//g' | awk '{print $2}')
+if [[ ! -z $mnres ]]; then
+	echo -e "{\"addr\":\"$1\",\"status\":\"$mnres\"}"
+fi
