@@ -1,0 +1,84 @@
+{
+  "special_ticker": {
+
+  },
+  "ticker": [
+    "CryptoBridge"
+  ],
+  "color": {
+    "prices": 3447003,
+    "coininfo": 888688,
+    "explorer": 888688,
+    "other": 15662976,
+    "error": 9375030
+  },
+  "devs": [
+    "359678628742561802",
+    "397700730334609412",
+    "447288831322882058",
+    "113739525066457093",
+    "377153910365880320",
+    "464599914962485260"
+  ],
+  "stages": [
+    {
+      "block": 5000,
+      "coll": 10000,
+      "mn": 0.80,
+      "pos": 0.20
+    },
+    {
+      "block": 320000,
+      "coll": 10000,
+      "mn": 10.00,
+      "pos": 2.5
+    },
+    {
+      "block": 1099000,
+      "coll": 10000,
+      "mn": 5.00,
+      "pos": 1.25
+    },
+    {
+      "block": 3720996,
+      "coll": 10000,
+      "mn": 2.50,
+      "pos": 0.625
+    },
+    {
+      "block": -1,
+      "coll": 10000,
+      "mn": 0.00,
+      "pos": 0.00
+    }
+  ],
+  "requests": {
+    "blockcount": "kyd-cli getblockcount",
+    "mncount": "kyd-cli masternode count",
+    "supply": "curl -s https://explorer2.kydcoin.io/ext/getmoneysupply",
+    "balance": "curl -s https://explorer2.kydcoin.io/ext/getaddress/",
+    "blockindex": "kyd-cli getblockhash ",
+    "blockhash": "kyd-cli getblock ",
+    "mnstat": "kyd-cli masternode list "
+  },
+  "statorder": [
+    "blockcount",
+    "mncount",
+    "supply",
+    "collateral",
+    "mnreward",
+    "powreward",
+    "posreward",
+    "locked",
+    "avgmnreward",
+    "nextstage"
+  ],
+  "hidenotsupported": false,
+  "useraddrs": true,
+  "usermns": true,
+  "channel": [ "468872412000288768" ],
+  "prefix": "!",
+  "coin": "KYD",
+  "blocktime": 60,
+  "token": "NDkwNTM4NjY1NzY4OTEwODQ5.Dn66EQ.krDSiz630cqIS9Fuywa5BSdyMGI"
+}

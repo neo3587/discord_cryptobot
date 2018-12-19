@@ -8,8 +8,7 @@ const Discord = require("discord.js");
 const XMLHttpRequest = require("xmlhttprequest").XMLHttpRequest;
 const fs = require("fs");
 const path = require("path");
-const spawnSync = require("child_process").spawnSync;
-const spawn = require("child_process").spawn;
+const { spawn, spawnSync } = require("child_process");
 
 const config_json_file = path.dirname(process.argv[1]) + "/config.json"; 
 const users_addr_folder = path.dirname(process.argv[1]) + "/.db_users_addr";
@@ -219,7 +218,6 @@ function price_avg() {
     });
 }
 function price_btc_usd() {
-
     return new Promise((resolve, reject) => {
         let req = new XMLHttpRequest();
         req.open("GET", "https://min-api.cryptocompare.com/data/price?fsym=BTC&tsyms=USD");
@@ -238,7 +236,18 @@ function price_btc_usd() {
         };
         req.send();
     });
-
+}
+function request_mncount() {
+    let cmd_res = bash_cmd(conf.requests.mncount);
+    try {
+        let json = JSON.parse(cmd_res);
+        if (json["enabled"] !== undefined)
+            return json["enabled"].toString();
+    }
+    catch (e) {
+        //
+    }
+    return /^[0-9\n]+$/.test(cmd_res) ? cmd_res.toString() : "";
 }
 function valid_request(req) {
     return conf.requests[req] !== undefined && conf.requests[req].trim() !== "";
@@ -318,7 +327,6 @@ class BotCommand {
     }
 
     price() {
-
         let promises = [];
         for (let ticker of conf.ticker)
             promises.push(get_ticker(ticker));
@@ -348,18 +356,17 @@ class BotCommand {
                     true
                 );
             }
-            if (embed.fields.length % 3 === 2) // fix bad placing if a row have 2 tickers
+            if (embed.fields.length > 3 && embed.fields.length % 3 === 2) // fix bad placing if a row have 2 tickers
                 embed.addBlankField(true);
 
             this.msg.channel.send(embed);
         });
-
     }
 
     stats() {
         Promise.all([
             new Promise((resolve, reject) => resolve(bash_cmd(conf.requests.blockcount))),
-            new Promise((resolve, reject) => resolve(bash_cmd(conf.requests.mncount))),
+            new Promise((resolve, reject) => resolve(request_mncount())),
             new Promise((resolve, reject) => resolve(bash_cmd(conf.requests.supply)))
         ]).then(([blockcount, mncount, supply]) => {
             
@@ -450,7 +457,7 @@ class BotCommand {
     earnings(mns) {
         Promise.all([
             new Promise((resolve, reject) => resolve(bash_cmd(conf.requests.blockcount))),
-            new Promise((resolve, reject) => resolve(bash_cmd(conf.requests.mncount))),
+            new Promise((resolve, reject) => resolve(request_mncount())),
             new Promise((resolve, reject) => resolve(price_avg())),
             new Promise((resolve, reject) => resolve(price_btc_usd()))
         ]).then(([blockcount, mncount, avgbtc, priceusd]) => {
@@ -836,7 +843,7 @@ class BotCommand {
 
         Promise.all([
             new Promise((resolve, reject) => resolve(bash_cmd(conf.requests.blockcount))),
-            new Promise((resolve, reject) => resolve(bash_cmd(conf.requests.mncount))),
+            new Promise((resolve, reject) => resolve(request_mncount())),
             new Promise((resolve, reject) => resolve(price_avg())),
             new Promise((resolve, reject) => resolve(price_btc_usd()))
         ]).then(([blockcount, mncount, avgbtc, priceusd]) => {
@@ -937,10 +944,12 @@ class BotCommand {
     }
     about() {
         const donate = { // don't be evil with this, please
+            "BTC": "3HE1kwgHEWvxBa38NHuQbQQrhNZ9wxjhe7",
             "BCARD": "BQmTwK685ajop8CFY6bWVeM59rXgqZCTJb",
             "SNO": "SZ4pQpuqq11EG7dw6qjgqSs5tGq3iTw2uZ",
             "RESQ": "QXFszBEsRXWy2D2YFD39DUqpnBeMg64jqX",
-            "CFL": "c4fuTdr7Z7wZy8WQULmuAdfPDReWfDcoE5"
+            "CFL": "c4fuTdr7Z7wZy8WQULmuAdfPDReWfDcoE5",
+            "KYD": "YczLtMSvv1jhAPzuZ9xyDKZr24nTkuACLZ"
         };
         this.msg.channel.send({
             embed: {
@@ -949,8 +958,8 @@ class BotCommand {
                 description: "**Author:** <@464599914962485260>\n" +
                     "**Source Code:** [Link](https://github.com/neo3587/discord_cryptobot)\n" +
                     "**Description:** A simple bot for " + conf.coin + " to check the current status of the currency in many ways, use **!help** to see these ways\n" +
-                    (conf.coin in donate ? "**" + conf.coin + " Donations (to author):** " + donate[conf.coin] + "\n" : "") +
-                    "**BTC Donations (to author):** 3HE1kwgHEWvxBa38NHuQbQQrhNZ9wxjhe7"
+                    (conf.coin in donate ? "**" + conf.coin + " Donations (to author):** `" + donate[conf.coin] + "`\n" : "") +
+                    "**BTC Donations (to author):** `" + donate["BTC"] + "`"
             }
         });
     }
@@ -995,7 +1004,7 @@ function handle_child() {
     child.on("close", (code, signal) => {
         child.kill();
         for (let i = 5; i > 0; i--) {
-            console.log("Restarting bot in " + i + " seconds..."); // just to avoid constant reset in case of constant crash cause no network is down
+            console.log("Restarting bot in " + i + " seconds..."); // just to avoid constant reset in case of constant crash cause network is down
             Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 1000);
         }
         handle_child();
