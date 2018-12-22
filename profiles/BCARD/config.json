@@ -1,6 +1,6 @@
 {
   "special_ticker": {
-    "CoinExchange": "984"
+
   },
   "ticker": [
     "CryptoBridge",
@@ -64,11 +64,11 @@
   ],
   "requests": {
     "blockcount": "CARDbuyers-cli getblockcount",
-    "mncount": "CARDbuyers-cli masternode count | jq .enabled",
-    "supply": "curl -s http://51.254.120.222:3001/ext/getmoneysupply",
-    "balance": "curl -s http://51.254.120.222:3001/ext/getaddress/",
+    "mncount": "CARDbuyers-cli masternode count",
+    "supply": "curl -s http://127.0.0.1:3001/ext/getmoneysupply",
+    "balance": "curl -s http://127.0.0.1:3001/ext/getaddress/",
     "blockindex": "CARDbuyers-cli getblockhash ",
-    "blockhash": " CARDbuyers-cli getblock ",
+    "blockhash": "CARDbuyers-cli getblock ",
     "mnstat": "CARDbuyers-cli masternode list "
   },
   "statorder": [
