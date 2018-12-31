@@ -2,7 +2,15 @@
 
 A discord bot originally made for BCARD, and reworked to work with RESQ, it can be easily adapted for any other currency.
 
-# How to install
+# Index
+
+- [How to install](#how-to-install)
+- [Bot commands](#bot-commands)
+- [Bot configuration](#bot-configuration)
+- [Currently supported exchanges](#currently-supported-exchanges)
+- [Additional](#additional)
+
+# <a name ="how-to-install"></a> How to install
 
 First, you can use this guide to crate the bot: https://www.digitaltrends.com/gaming/how-to-make-a-discord-bot/
 
@@ -30,7 +38,7 @@ Optionally you can run the bot on background with:
 node bot.js background
 ```
 
-# Bot commands
+# <a name ="bot-commands"></a> Bot commands
 
 - **!price:** Shows the last price, volume (in BTC), ask, bid and a link to the exchange for every exchange where the coin is listed.
 
@@ -58,7 +66,7 @@ node bot.js background
 - **!conf-get:** Receive a dm with the config file, requires devs permissions (see **Bot configuration**).
 - **!conf-set:** Receive a dm asking to drag and drop a update of the config file, requires devs permissions (see **Bot configuration**).
 
-# Bot configuration
+# <a name ="bot-configuration"></a> Bot configuration
 
 You'll have to modify the "config.json" file to make it fit with your cryptocurrency, there's a list of every parameter:
 
@@ -146,7 +154,7 @@ Important note if you customize the requests:
 
 NOTE: The token on config.json is just an example, not the real one (for obvious reasons), use yours to work with your discord server.
 
-# Currently supported exchanges
+# <a name ="currently-supported-exchanges"></a> Currently supported exchanges
 
 - CryptoBridge
 - Crex24
@@ -172,7 +180,7 @@ NOTE: The non-supported or not 100% accurate features are due to the exchange AP
 
 NOTE 2: Feel free to ask for adding support to a concrete exchange.
 
-# Additional
+# <a name ="additional"></a> Additional
 
 If you're too lazy or just not sure how to make a profile, I can make one for your cryptocurrency for a very tiny fee.
 
