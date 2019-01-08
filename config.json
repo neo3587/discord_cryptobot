@@ -83,6 +83,11 @@
     "avgmnreward",
     "nextstage"
   ],
+  "monitor": {
+    "enabled": true,
+    "channel": "531519255519428638",
+    "interval": 60
+  },
   "hidenotsupported": false,
   "useraddrs": true,
   "usermns": true,

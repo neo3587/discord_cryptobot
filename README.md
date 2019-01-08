@@ -142,6 +142,14 @@ Important note if you customize the requests:
     "nextstage"    // requires requests.blockcount
   ]
 ```
+- **monitor**: Use separate channel where only the bot have permission to send messages to post every X time the price stats and earnings. It follows this scheme:
+```
+"monitor": {
+    "enabled": true,
+    "channel": "531519255519428638", // channel id where the bot will post the info    
+    "interval": 60                   // refresh the data every 60 seconds
+}
+```
 - **hidenotsupported**: Hide the ticker values from exchanges APIs that doesn't support that feature instead of showing "Not Supported".
 - **useraddrs:** Enable the user address commands (`!my-address-add`, `!my-address-del`, `!my-address-list`, `!my-balance`).
 - **usermns:** Enable the user masternode commands (`!my-masternode-add`, `!my-masternode-del`, `!my-masternode-list`, `!my-balance`).

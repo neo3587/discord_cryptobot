@@ -14,8 +14,8 @@ const config_json_file = path.dirname(process.argv[1]) + "/config.json";
 const users_addr_folder = path.dirname(process.argv[1]) + "/.db_users_addr";
 const users_mn_folder = path.dirname(process.argv[1]) + "/.db_users_mn";
 
-var conf = get_config();
-var client = new Discord.Client();
+const conf = require(config_json_file);
+const client = new Discord.Client();
 
 
 class ExchangeData {
@@ -70,8 +70,8 @@ function get_ticker(exchange) {
             req.send();
         };
 
-        var exdata = new ExchangeData(exchange);
-        var tmp;
+        let exdata = new ExchangeData(exchange);
+        let tmp;
 
         switch (exchange.toLowerCase()) {
             case "cryptobridge": {
@@ -207,7 +207,7 @@ function price_avg() {
             promises.push(get_ticker(ticker));
         Promise.all(promises).then(values => {
             let sum = 0.00, len = 0;
-            for (x of values) {
+            for (let x of values) {
                 if (x.price !== "Error") {
                     sum += parseFloat(x.price);
                     len++;
@@ -247,7 +247,8 @@ function request_mncount() {
     catch (e) {
         //
     }
-    return /^[0-9\n]+$/.test(cmd_res) ? cmd_res.toString() : "";
+    cmd_res = cmd_res.toString().replace("\n", "").trim();
+    return /^[0-9]+$/.test(cmd_res) ? cmd_res : "";
 }
 function valid_request(req) {
     return conf.requests[req] !== undefined && conf.requests[req].trim() !== "";
@@ -281,10 +282,6 @@ function earn_fields(coinday, avgbtc, priceusd) {
         }
     ];
 }
-function get_config() {
-    var str = fs.readFileSync(config_json_file, "utf8"); // for some reason is adding a invalid character at the beginning that causes a throw
-    return JSON.parse(str.slice(str.indexOf("{")));
-}
 function get_stage(blk) {
     for (let stage of conf.stages)
         if (blk <= stage.block)
@@ -292,7 +289,7 @@ function get_stage(blk) {
     return conf.stages[conf.stages.length - 1];
 }
 function synced_request(url) {
-    var req = new XMLHttpRequest();
+    let req = new XMLHttpRequest();
     req.open("GET", url, false);
     req.send();
     return req.responseText;
@@ -321,9 +318,11 @@ function simple_message(title, descr, color = conf.color.explorer) {
 
 class BotCommand {
 
-    /** @param {Discord.Message} msg - */
-    constructor(msg) {
-        this.msg = msg; 
+    /** @param {Discord.Message} msg - 
+      * @param {Function} fn_send - */
+    constructor(msg, fn_send = txt => this.msg.channel.send(txt)) {
+        this.msg = msg;
+        this.fn_send = fn_send;
     }
 
     price() {
@@ -331,7 +330,7 @@ class BotCommand {
         for (let ticker of conf.ticker)
             promises.push(get_ticker(ticker));
 
-        Promise.all(promises).then(values => {
+        return Promise.all(promises).then(values => {
 
             const hide_undef = (str, val) => {
                 if (val === undefined)
@@ -340,7 +339,7 @@ class BotCommand {
             };
 
             let embed = new Discord.RichEmbed();
-            embed.title = "**Price Ticker**";
+            embed.title = "Price Ticker";
             embed.color = conf.color.prices;
             embed.timestamp = new Date();
 
@@ -359,12 +358,12 @@ class BotCommand {
             if (embed.fields.length > 3 && embed.fields.length % 3 === 2) // fix bad placing if a row have 2 tickers
                 embed.addBlankField(true);
 
-            this.msg.channel.send(embed);
+            this.fn_send(embed);
         });
     }
 
     stats() {
-        Promise.all([
+        return Promise.all([
             new Promise((resolve, reject) => resolve(bash_cmd(conf.requests.blockcount))),
             new Promise((resolve, reject) => resolve(request_mncount())),
             new Promise((resolve, reject) => resolve(bash_cmd(conf.requests.supply)))
@@ -450,12 +449,12 @@ class BotCommand {
             if (valid_request("supply") && !valid.supply)
                 embed.description = (embed.description === undefined ? "" : embed.description) + "There seems to be a problem with the `supply` request";
 
-            this.msg.channel.send(embed);
+            this.fn_send(embed);
 
         });
     }
     earnings(mns) {
-        Promise.all([
+        return Promise.all([
             new Promise((resolve, reject) => resolve(bash_cmd(conf.requests.blockcount))),
             new Promise((resolve, reject) => resolve(request_mncount())),
             new Promise((resolve, reject) => resolve(price_avg())),
@@ -471,7 +470,7 @@ class BotCommand {
                 mns = mns !== undefined && mns > 0 ? mns : 1;
                 let stage = get_stage(blockcount);
                 let coinday = 86400 / conf.blocktime / mncount * stage.mn;
-                this.msg.channel.send({
+                this.fn_send({
                     embed: {
                         title: conf.coin + " Earnings" + (mns !== 1 ? " (" + mns + " MNs)" : ""),
                         color: conf.color.coininfo,
@@ -498,7 +497,7 @@ class BotCommand {
                 });
             }
             else {
-                this.msg.channel.send({
+                this.fn_send({
                     embed: {
                         title: conf.coin + " Earnings",
                         color: conf.color.coininfo,
@@ -547,7 +546,7 @@ class BotCommand {
                 if (valid.blockcount && valid.mncount) {
                     let stage = get_stage(blockcount);
                     let coinday = 86400 / conf.blocktime * stage.pow * calc_multiplier() / total_hr;
-                    this.msg.channel.send({
+                    this.fn_send({
                         embed: {
                             title: conf.coin + " Mining (" + hr + " " + letter + "H/s)",
                             color: conf.color.coininfo,
@@ -558,7 +557,7 @@ class BotCommand {
                     });
                 }
                 else {
-                    this.msg.channel.send({
+                    this.fn_send({
                         embed: {
                             title: conf.coin + " Mining (" + hr + " " + letter + "H/s)",
                             color: conf.color.coininfo,
@@ -570,7 +569,7 @@ class BotCommand {
             });
         }
         else {
-            this.msg.channel.send({
+            this.fn_send({
                 embed: {
                     title: conf.coin + " Mining ( ? H/s)",
                     color: conf.color.coininfo,
@@ -584,7 +583,7 @@ class BotCommand {
         try {
             let json = JSON.parse(bash_cmd(conf.requests.balance + addr));
             if (json["sent"] !== undefined && json["received"] !== undefined && json["balance"] !== undefined) {
-                this.msg.channel.send({
+                this.fn_send({
                     embed: {
                         title: "Balance",
                         color: conf.color.explorer,
@@ -618,7 +617,7 @@ class BotCommand {
         catch (e) {
             //
         }
-        this.msg.channel.send(simple_message("Balance", "Invalid address: `" + addr + "`\n(Addresses that never received a single coin might be considered as invalid)"));
+        this.fn_send(simple_message("Balance", "Invalid address: `" + addr + "`\n(Addresses that never received a single coin might be considered as invalid)"));
     }
     block_index(index) {
         this.block_hash(bash_cmd(conf.requests.blockindex + index));
@@ -628,7 +627,7 @@ class BotCommand {
 
         if (/^[A-Za-z0-9\n]+$/.test(hash)) {
             try {
-                var json = JSON.parse(bash_cmd(conf.requests.blockhash + hash));
+                let json = JSON.parse(bash_cmd(conf.requests.blockhash + hash));
                 str =
                     "**Index:** " + json["height"] + "\n" +
                     "**Hash:** " + json["hash"] + "\n" +
@@ -645,7 +644,7 @@ class BotCommand {
                 //
             }
         }
-        this.msg.channel.send({
+        this.fn_send({
             embed: {
                 title: "Block info",
                 color: conf.color.explorer,
@@ -662,29 +661,29 @@ class BotCommand {
                 let addrs_list = fs.existsSync(users_addr_folder + "/" + this.msg.author.id + ".txt") ?  fs.readFileSync(users_addr_folder + "/" + this.msg.author.id + ".txt", "utf8").split(/\r?\n/) : [];
                 if (addrs_list.indexOf(addr) === -1) {
                     fs.writeFileSync(users_addr_folder + "/" + this.msg.author.id + ".txt", addrs_list.concat([addr]).join("\n"));
-                    this.msg.channel.send(simple_message("User Address Add", "Address `" + addr + "` assigned to <@" + this.msg.author.id + ">"));
+                    this.fn_send(simple_message("User Address Add", "Address `" + addr + "` assigned to <@" + this.msg.author.id + ">"));
                 }
                 else 
-                    this.msg.channel.send(simple_message("User Address Add", "Address `" + addr + "` already has been assigned to <@" + this.msg.author.id + ">"));
+                    this.fn_send(simple_message("User Address Add", "Address `" + addr + "` already has been assigned to <@" + this.msg.author.id + ">"));
                 return;
             }
         }
         catch (e) {
             //
         }
-        this.msg.channel.send(simple_message("User Address Add", "Invalid address: `" + addr + "`\n(Addresses that never received a single coin might be considered as invalid)"));
+        this.fn_send(simple_message("User Address Add", "Invalid address: `" + addr + "`\n(Addresses that never received a single coin might be considered as invalid)"));
     }
     my_address_del(addr) {
         create_no_exists(users_addr_folder);
         if (!fs.existsSync(users_addr_folder + "/" + this.msg.author.id + ".txt")) {
-            this.msg.channel.send(simple_message("User Address Delete", "There aren't addresses assigned to <@" + this.msg.author.id + ">"));
+            this.fn_send(simple_message("User Address Delete", "There aren't addresses assigned to <@" + this.msg.author.id + ">"));
             return;
         }
 
         let addrs_list = fs.readFileSync(users_addr_folder + "/" + this.msg.author.id + ".txt", "utf8").split(/\r?\n/).filter(Boolean);
         let index = addrs_list.indexOf(addr);
         if (index === -1) {
-            this.msg.channel.send(simple_message("User Address Delete", "Address `" + addr + "` isn't assgined to <@" + this.msg.author.id + ">\nUse " + conf.prefix + "my-address-list to get your assigned addresses"));
+            this.fn_send(simple_message("User Address Delete", "Address `" + addr + "` isn't assgined to <@" + this.msg.author.id + ">\nUse " + conf.prefix + "my-address-list to get your assigned addresses"));
             return;
         }
 
@@ -693,28 +692,28 @@ class BotCommand {
             fs.writeFileSync(users_addr_folder + "/" + this.msg.author.id + ".txt", addrs_list.join("\n"));
         else
             fs.unlinkSync(users_addr_folder + "/" + this.msg.author.id + ".txt");
-        this.msg.channel.send(simple_message("User Address Delete", "Address `" + addr + "` deleted from <@" + this.msg.author.id + "> assigned addresses"));
+        this.fn_send(simple_message("User Address Delete", "Address `" + addr + "` deleted from <@" + this.msg.author.id + "> assigned addresses"));
     }
     my_address_list() {
         create_no_exists(users_addr_folder);
         if (!fs.existsSync(users_addr_folder + "/" + this.msg.author.id + ".txt")) {
-            this.msg.channel.send(simple_message("User Address List", "There aren't addresses assigned to <@" + this.msg.author.id + ">"));
+            this.fn_send(simple_message("User Address List", "There aren't addresses assigned to <@" + this.msg.author.id + ">\nUse `my-address-add ADDRESS` to assign addresses to your account"));
             return;
         }
 
         let addr_str = "`" + fs.readFileSync(users_addr_folder + "/" + this.msg.author.id + ".txt", "utf8").split(/\r?\n/).filter(Boolean).join("`, `") + "`";
         if (addr_str.length < 2000) {
-            this.msg.channel.send(simple_message("User Address List", addr_str));
+            this.fn_send(simple_message("User Address List", addr_str));
         }
         else {
-            this.msg.channel.send(simple_message("User Address List", "Address list too large, sent via dm"));
+            this.fn_send(simple_message("User Address List", "Address list too large, sent via dm"));
             this.msg.author.send(addr_str);
         }
     }
     my_balance() {
         create_no_exists(users_addr_folder);
         if (!fs.existsSync(users_addr_folder + "/" + this.msg.author.id + ".txt")) {
-            this.msg.channel.send(simple_message("User Balance", "There aren't addresses assigned to <@" + this.msg.author.id + ">"));
+            this.fn_send(simple_message("User Balance", "There aren't addresses assigned to <@" + this.msg.author.id + ">\nUse `my-address-add ADDRESS` to assign addresses to your account"));
             return;
         }
 
@@ -732,7 +731,7 @@ class BotCommand {
                 //
             }
         }
-        this.msg.channel.send({
+        this.fn_send({
             embed: {
                 title: "User Balance",
                 color: conf.color.explorer,
@@ -768,29 +767,29 @@ class BotCommand {
                 let addrs_list = fs.existsSync(users_mn_folder + "/" + this.msg.author.id + ".txt") ? fs.readFileSync(users_mn_folder + "/" + this.msg.author.id + ".txt", "utf8").split(/\r?\n/) : [];
                 if (addrs_list.indexOf(addr) === -1) {
                     fs.writeFileSync(users_mn_folder + "/" + this.msg.author.id + ".txt", addrs_list.concat([addr]).join("\n"));
-                    this.msg.channel.send(simple_message("User Masternode Add", "Masternode address `" + addr + "` assigned to <@" + this.msg.author.id + ">\nStatus: " + json["status"]));
+                    this.fn_send(simple_message("User Masternode Add", "Masternode address `" + addr + "` assigned to <@" + this.msg.author.id + ">\nStatus: " + json["status"]));
                 }
                 else
-                    this.msg.channel.send(simple_message("User Masternode Add", "Masternode address `" + addr + "` already has been assigned to <@" + this.msg.author.id + ">"));
+                    this.fn_send(simple_message("User Masternode Add", "Masternode address `" + addr + "` already has been assigned to <@" + this.msg.author.id + ">"));
                 return;
             }
         }
         catch (e) {
             //
         }
-        this.msg.channel.send(simple_message("User Masternode Add", "Invalid masternode address: `" + addr + "`\n(Can't be found in the masternode list)"));
+        this.fn_send(simple_message("User Masternode Add", "Invalid masternode address: `" + addr + "`\n(Can't be found in the masternode list)"));
     }
     my_masternode_del(addr) {
         create_no_exists(users_mn_folder);
         if (!fs.existsSync(users_mn_folder + "/" + this.msg.author.id + ".txt")) {
-            this.msg.channel.send(simple_message("User Masternode Delete", "There aren't masternode addresses assigned to <@" + this.msg.author.id + ">"));
+            this.fn_send(simple_message("User Masternode Delete", "There aren't masternode addresses assigned to <@" + this.msg.author.id + ">"));
             return;
         }
 
         let addrs_list = fs.readFileSync(users_mn_folder + "/" + this.msg.author.id + ".txt", "utf8").split(/\r?\n/).filter(Boolean);
         let index = addrs_list.indexOf(addr);
         if (index === -1) {
-            this.msg.channel.send(simple_message("User Masternode Delete", "Masternode address `" + addr + "` isn't assgined to <@" + this.msg.author.id + ">\nUse " + conf.prefix + "my-masternode-list to get your assigned masternode addresses"));
+            this.fn_send(simple_message("User Masternode Delete", "Masternode address `" + addr + "` isn't assgined to <@" + this.msg.author.id + ">\nUse " + conf.prefix + "my-masternode-list to get your assigned masternode addresses"));
             return;
         }
 
@@ -799,12 +798,12 @@ class BotCommand {
             fs.writeFileSync(users_mn_folder + "/" + this.msg.author.id + ".txt", addrs_list.join("\n"));
         else
             fs.unlinkSync(users_mn_folder + "/" + this.msg.author.id + ".txt");
-        this.msg.channel.send(simple_message("User Masternode Delete", "Masternode address `" + addr + "` deleted from <@" + this.msg.author.id + "> assigned addresses"));
+        this.fn_send(simple_message("User Masternode Delete", "Masternode address `" + addr + "` deleted from <@" + this.msg.author.id + "> assigned addresses"));
     }
     my_masternode_list() {
         create_no_exists(users_mn_folder);
         if (!fs.existsSync(users_mn_folder + "/" + this.msg.author.id + ".txt")) {
-            this.msg.channel.send(simple_message("User Masternode List", "There aren't masternode addresses assigned to <@" + this.msg.author.id + ">"));
+            this.fn_send(simple_message("User Masternode List", "There aren't masternode addresses assigned to <@" + this.msg.author.id + ">\nUse `my-masternode-add ADDRESS` to assign masternodes to your account"));
             return;
         }
 
@@ -825,19 +824,19 @@ class BotCommand {
         }
 
         if (mn_str.length < 2000) {
-            this.msg.channel.send(simple_message("User Masternode List", mn_str));
+            this.fn_send(simple_message("User Masternode List", mn_str));
         }
         else {
             let mn_split = mn_str.split(/\r?\n/);
             let splits = parseInt(mn_split.length / 30) + 1;
             for (let i = 1; mn_split.length > 0; i++)
-                this.msg.channel.send(simple_message("User Masternode List (" + i + "/" + splits + ")", mn_split.splice(0, 30).join("\n")));
+                this.fn_send(simple_message("User Masternode List (" + i + "/" + splits + ")", mn_split.splice(0, 30).join("\n")));
         }
     }
     my_earnings() {
         create_no_exists(users_mn_folder);
         if (!fs.existsSync(users_mn_folder + "/" + this.msg.author.id + ".txt")) {
-            this.msg.channel.send(simple_message("User Earnings", "There aren't masternode addresses assigned to <@" + this.msg.author.id + ">"));
+            this.fn_send(simple_message("User Earnings", "There aren't masternode addresses assigned to <@" + this.msg.author.id + ">\nUse `my-masternode-add ADDRESS` to assign masternodes to your account"));
             return;
         }
 
@@ -858,7 +857,7 @@ class BotCommand {
             if (valid.blockcount && valid.mncount) {
                 let stage = get_stage(blockcount);
                 let coinday = 86400 / conf.blocktime / mncount * stage.mn;
-                this.msg.channel.send({
+                this.fn_send({
                     embed: {
                         title: "User Earnings (" + mns + " MNs)",
                         color: conf.color.coininfo,
@@ -873,7 +872,7 @@ class BotCommand {
                 });
             }
             else {
-                this.msg.channel.send({
+                this.fn_send({
                     embed: {
                         title: "User Earnings (" + mns + " MNs)",
                         color: conf.color.coininfo,
@@ -886,9 +885,9 @@ class BotCommand {
     }
 
     help() {
-        this.msg.channel.send({
+        this.fn_send({
             embed: {
-                title: "**Available commands**",
+                title: "Available commands",
                 color: conf.color.other,
                 fields: [
                     {
@@ -951,9 +950,9 @@ class BotCommand {
             "CFL": "c4fuTdr7Z7wZy8WQULmuAdfPDReWfDcoE5",
             "KYD": "YczLtMSvv1jhAPzuZ9xyDKZr24nTkuACLZ"
         };
-        this.msg.channel.send({
+        this.fn_send({
             embed: {
-                title: "**About**",
+                title: "About",
                 color: conf.color.other,
                 description: "**Author:** <@464599914962485260>\n" +
                     "**Source Code:** [Link](https://github.com/neo3587/discord_cryptobot)\n" +
@@ -965,11 +964,11 @@ class BotCommand {
     }
 
     conf_get() {
-        this.msg.channel.send("<@" + this.msg.author.id + "> check the dm I just sent to you :wink:");
+        this.fn_send("<@" + this.msg.author.id + "> check the dm I just sent to you :wink:");
         this.msg.author.send({ files: [config_json_file] });
     }
     conf_set() {
-        this.msg.channel.send("<@" + this.msg.author.id + "> check the dm I just sent to you :wink:");
+        this.fn_send("<@" + this.msg.author.id + "> check the dm I just sent to you :wink:");
         this.msg.author.send("Put the config.json file here and I'll update myself with the changes, don't send any message, just drag and drop the file, you have 90 seconds to put the file or you'll have to use **!conf-set** again").then(reply => {
             let msgcol = new Discord.MessageCollector(reply.channel, m => m.author.id === this.msg.author.id, { time: 90000 });
             msgcol.on("collect", (elem, col) => {
@@ -983,8 +982,8 @@ class BotCommand {
                     conf_res = conf_res.slice(conf_res.indexOf("{"));
                     JSON.parse(conf_res); // just check if throws
                     fs.writeFileSync(config_json_file, conf_res);
-                    conf = get_config();
-                    this.msg.channel.send("Config updated by <@" + this.msg.author.id + ">, if something goes wrong, it will be his fault :stuck_out_tongue: ");
+                    //this.fn_send("Config updated by <@" + this.msg.author.id + ">, if something goes wrong, it will be his fault :stuck_out_tongue: ");
+                    this.fn_send("Config updated by <@" + this.msg.author.id + ">, if something goes wrong, it will be his fault :stuck_out_tongue:\nRebooting the bot to apply the new config").then(() => process.exit());
                 }
                 catch (e) {
                     this.msg.author.send("Something seems wrong on the json file you sent, check that everything is okay and use **!conf-set** again");
@@ -1000,7 +999,7 @@ class BotCommand {
 }
 
 function handle_child() {
-    var child = spawn(process.argv[0], [process.argv[1], "handled_child"], { stdio: ["ignore", process.stdout, process.stderr, "ipc"] });
+    let child = spawn(process.argv[0], [process.argv[1], "handled_child"], { stdio: ["ignore", process.stdout, process.stderr, "ipc"] });
     child.on("close", (code, signal) => {
         child.kill();
         for (let i = 5; i > 0; i--) {
@@ -1033,8 +1032,8 @@ client.on("message", msg => {
     if (conf.channel.length && !conf.channel.includes(msg.channel.id) || !msg.content.startsWith(conf.prefix) || msg.author.bot)
         return;
     
-    var args = msg.content.slice(conf.prefix.length).split(" ");
-    var cmd = new BotCommand(msg);
+    let args = msg.content.slice(conf.prefix.length).split(" ");
+    let cmd = new BotCommand(msg);
 
     const error_noparam = (n, descr) => {
         if (args.length > n)
@@ -1249,6 +1248,28 @@ if (process.argv.length >= 3 && process.argv[2] === "background") {
 }
 
 if (process.argv.length >= 3 && process.argv[2] === "handled_child")
-    client.login(conf.token).then(() => console.log("Bot ready!"));
+    client.login(conf.token).then(() => {
+        console.log("Bot ready!");
+        if (conf.monitor !== undefined && conf.monitor.enabled === true) {
+
+            const channel = client.channels.get(conf.monitor.channel);
+            let embeds = [];
+            let cmd = new BotCommand(undefined, txt => embeds.push(txt));
+
+            const refresh_monitor = async () => {
+                embeds = [];
+                await cmd.price();
+                await cmd.stats();
+                await cmd.earnings();
+                channel.bulkDelete(50).then(async () => {
+                    for (let emb of embeds)
+                        await channel.send(emb);
+                });
+            };
+
+            refresh_monitor();
+            channel.client.setInterval(() => refresh_monitor(), conf.monitor.interval * 1000);
+        }
+    });
 else
     handle_child();
