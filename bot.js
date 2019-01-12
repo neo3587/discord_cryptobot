@@ -2,6 +2,10 @@
 /*
     Author: neo3587
     Source: https://github.com/neo3587/discord_cryptobot
+    TODO: 
+     - local wallet manage => tips / airdrops / bounties / etc
+     - splitted functionalities based on args (price / tip / airdrop / etc) => class for each functionality (argv[2] = function, argv[3] = background / handled_child)
+     - split config file for each functionality ?
 */
 
 const Discord = require("discord.js");
@@ -45,6 +49,40 @@ class ExchangeData {
     }
 }
 
+function configure_systemd(name) {
+    if (process.platform === "linux") {
+        let service = "[Unit]\n" +
+            "Description=" + name + " service\n" +
+            "After=network.target\n" +
+            "\n" +
+            "[Service]\n" +
+            "User=root\n" +
+            "Group=root\n" +
+            "ExecStart=" + process.argv[0] + " " + process.argv[1] + "\n" +
+            "Restart=always\n" +
+            "\n" +
+            "[Install]\n" +
+            "WantedBy=multi-user.target";
+
+        fs.writeFileSync("/etc/systemd/system/" + name + ".service", service);
+        bash_cmd("chmod +x /etc/systemd/system/" + name + ".service");
+        bash_cmd("systemctl daemon-reload");
+        bash_cmd("systemctl start " + name + ".service");
+        bash_cmd("systemctl enable " + name + ".service");
+
+        console.log("Start:              \x1b[1;32msystemctl start   " + name + ".service\x1b[0m");
+        console.log("Stop:               \x1b[1;32msystemctl stop    " + name + ".service\x1b[0m");
+        console.log("Start on reboot:    \x1b[1;32msystemctl enable  " + name + ".service\x1b[0m");
+        console.log("No start on reboot: \x1b[1;32msystemctl disable " + name + ".service\x1b[0m");
+        console.log("Status:             \x1b[1;32msystemctl status  " + name + ".service\x1b[0m");
+
+        console.log("Current status: Running and Start on reboot");
+    }
+    else {
+        console.log("Can't run on background in non-linux systems");
+    }
+    process.exit();
+}
 function get_ticker(exchange) {
     return new Promise((resolve, reject) => {
 
@@ -943,7 +981,7 @@ class BotCommand {
     }
     about() {
         const donate = { // don't be evil with this, please
-            "BTC": "3HE1kwgHEWvxBa38NHuQbQQrhNZ9wxjhe7",
+            "BTC": "3F6J19DmD5jowwwQbE9zxXoguGPVR716a7",
             "BCARD": "BQmTwK685ajop8CFY6bWVeM59rXgqZCTJb",
             "SNO": "SZ4pQpuqq11EG7dw6qjgqSs5tGq3iTw2uZ",
             "RESQ": "QXFszBEsRXWy2D2YFD39DUqpnBeMg64jqX",
@@ -982,7 +1020,6 @@ class BotCommand {
                     conf_res = conf_res.slice(conf_res.indexOf("{"));
                     JSON.parse(conf_res); // just check if throws
                     fs.writeFileSync(config_json_file, conf_res);
-                    //this.fn_send("Config updated by <@" + this.msg.author.id + ">, if something goes wrong, it will be his fault :stuck_out_tongue: ");
                     this.fn_send("Config updated by <@" + this.msg.author.id + ">, if something goes wrong, it will be his fault :stuck_out_tongue:\nRebooting the bot to apply the new config").then(() => process.exit());
                 }
                 catch (e) {
@@ -997,6 +1034,7 @@ class BotCommand {
     }
 
 }
+
 
 function handle_child() {
     let child = spawn(process.argv[0], [process.argv[1], "handled_child"], { stdio: ["ignore", process.stdout, process.stderr, "ipc"] });
@@ -1212,42 +1250,9 @@ client.on("message", msg => {
 });
 
 
-if (process.argv.length >= 3 && process.argv[2] === "background") {
-    if (process.platform === "linux") {
-        let service = "[Unit]\n" +
-            "Description=discord_cryptobot service\n" +
-            "After=network.target\n" +
-            "\n" +
-            "[Service]\n" +
-            "User=root\n" +
-            "Group=root\n" +
-            "ExecStart=" + process.argv[0] + " " + process.argv[1] + "\n" +
-            "Restart=always\n" +
-            "\n" +
-            "[Install]\n" +
-            "WantedBy=multi-user.target";
-
-        fs.writeFileSync("/etc/systemd/system/discord_cryptobot.service", service);
-        bash_cmd("chmod +x /etc/systemd/system/discord_cryptobot.service");
-        bash_cmd("systemctl daemon-reload");
-        bash_cmd("systemctl start discord_cryptobot.service");
-        bash_cmd("systemctl enable discord_cryptobot.service");
-
-        console.log("Start:              \x1b[1;32msystemctl start   discord_cryptobot.service\x1b[0m");
-        console.log("Stop:               \x1b[1;32msystemctl stop    discord_cryptobot.service\x1b[0m");
-        console.log("Start on reboot:    \x1b[1;32msystemctl enable  discord_cryptobot.service\x1b[0m");
-        console.log("No start on reboot: \x1b[1;32msystemctl disable discord_cryptobot.service\x1b[0m");
-        console.log("Status:             \x1b[1;32msystemctl status  discord_cryptobot.service\x1b[0m");
-
-        console.log("Current status: Running and Start on reboot");
-    }
-    else {
-        console.log("Can't run on background in non-linux systems");
-    }
-    process.exit();
-}
-
-if (process.argv.length >= 3 && process.argv[2] === "handled_child")
+if (process.argv.length >= 3 && process.argv[2] === "background")
+    configure_systemd("discord_cryptobot");
+else if (process.argv.length >= 3 && process.argv[2] === "handled_child")
     client.login(conf.token).then(() => {
         console.log("Bot ready!");
         if (conf.monitor !== undefined && conf.monitor.enabled === true) {

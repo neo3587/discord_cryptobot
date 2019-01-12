@@ -193,7 +193,7 @@ NOTE 2: Feel free to ask for adding support to a concrete exchange.
 If you're too lazy or just not sure how to make a profile, I can make one for your cryptocurrency for a very tiny fee.
 
 ```
-BTC Donations:   3HE1kwgHEWvxBa38NHuQbQQrhNZ9wxjhe7
+BTC Donations:   3F6J19DmD5jowwwQbE9zxXoguGPVR716a7
 BCARD Donations: BQmTwK685ajop8CFY6bWVeM59rXgqZCTJb
 RESQ Donations:  QhsqRbQVNHCAe93puAnHUX96jsmMxtpBNh
 CFL Donations:   c4fuTdr7Z7wZy8WQULmuAdfPDReWfDcoE5
