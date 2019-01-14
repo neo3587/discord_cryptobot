@@ -239,14 +239,14 @@ function price_avg() {
         for (let ticker of conf.ticker)
             promises.push(get_ticker(ticker));
         Promise.all(promises).then(values => {
-            let sum = 0.00, len = 0;
-            for (let x of values) {
-                if (x.price !== "Error") {
-                    sum += parseFloat(x.price);
-                    len++;
-                }
-            }
-            resolve(sum / Math.max(len, 1));
+            let price = 0.00, weight = 0.00;
+            values = values.filter((x, i) => !isNaN(x.price));
+            values.forEach((x, i) => {
+                x.volume = isNaN(x.volume) ? 0 : parseFloat(x.volume);
+                weight += x.volume;
+            });
+            values.forEach((x, i) => price += parseFloat(x.price) * (weight !== 0 ? x.volume / weight : 1 / values.length));
+            resolve(values.length === 0 ? undefined : price);
         });
     });
 }
@@ -1249,7 +1249,8 @@ if (process.argv.length >= 3 && process.argv[2] === "background")
     configure_systemd("discord_cryptobot");
 else if (process.argv.length >= 3 && process.argv[2] === "handled_child")
     client.login(conf.token).then(() => {
-        console.log("Bot ready!");
+        console.log("Bot ready!"); 
+        // switch(process.argv[2]) { "price" "airdrop" "tip" "?" 
         if (conf.monitor !== undefined && conf.monitor.enabled === true) {
 
             const channel = client.channels.get(conf.monitor.channel);
