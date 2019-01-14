@@ -179,7 +179,6 @@ NOTE: The token on config.json is just an example, not the real one (for obvious
 - Exrates
 - Binance
 - Bitfinex (24h BTC volume not 100% accurate)
-- MoonDEX
 - Coinex (24h BTC volume not 100% accurate)
 - P2PB2B
 - CoinsBit

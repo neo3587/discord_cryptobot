@@ -208,11 +208,6 @@ function get_ticker(exchange) {
                 js_request("https://api.bitfinex.com/v2/ticker/t{COIN}BTC", res => exdata.fill(res[6], (res[8] + res[9]) / 2 * res[7], res[0], res[2], res[5])); // volume not 100% accurate
                 break;
             }
-            case "moondex": {
-                exdata.link = rg_replace("https://beta.moondex.io/market/MOONDEX.{COIN}_MOONDEX.BTC");
-                js_request("https://data.moondex.io/ticker/{COIN}_BTC", res => exdata.fillj(res, "latest", "volume", "highestBid", "lowestAsk", "percentChange"));
-                break;
-            }
             case "coinex": {
                 exdata.link = rg_replace("https://www.coinex.com/exchange?currency=btc&dest={COIN}#limit", true);
                 js_request("https://api.coinex.com/v1/market/ticker?market={COIN}BTC", res => {
