@@ -2,10 +2,11 @@
 /*
     Author: neo3587
     Source: https://github.com/neo3587/discord_cryptobot
-    TODO: 
-     - local wallet manage => tips / airdrops / bounties / etc
-     - splitted functionalities based on args (price / tip / airdrop / etc) => class for each functionality (argv[2] = function, argv[3] = background / handled_child)
-     - split config file for each functionality ?
+    Custom pair:
+        ticker: {
+            "CryptoBridge": "BTC"
+        }
+        if === "BTC" => CryptoBridge | else => CryptoBridge (ETH)
 */
 
 const Discord = require("discord.js");
@@ -49,6 +50,28 @@ class ExchangeData {
     }
 }
 
+function start_monitor() {
+    if (conf.monitor !== undefined && conf.monitor.enabled === true) {
+
+        const channel = client.channels.get(conf.monitor.channel);
+        let embeds = [];
+        let cmd = new BotCommand(undefined, txt => embeds.push(txt));
+
+        const refresh_monitor = async () => {
+            embeds = [];
+            await cmd.price();
+            await cmd.stats();
+            await cmd.earnings();
+            channel.bulkDelete(50).then(async () => {
+                for (let emb of embeds)
+                    await channel.send(emb);
+            });
+        };
+
+        refresh_monitor();
+        channel.client.setInterval(() => refresh_monitor(), conf.monitor.interval * 1000);
+    }
+}
 function configure_systemd(name) {
     if (process.platform === "linux") {
         let service = "[Unit]\n" +
@@ -481,6 +504,41 @@ class BotCommand {
                 embed.description = (embed.description === undefined ? "" : embed.description) + "There seems to be a problem with the `mncount` request\n";
             if (valid_request("supply") && !valid.supply)
                 embed.description = (embed.description === undefined ? "" : embed.description) + "There seems to be a problem with the `supply` request";
+
+            this.fn_send(embed);
+
+        });
+    }
+    stages() {
+        return new Promise((resolve, reject) => resolve(bash_cmd(conf.requests.blockcount))).then(blockcount => {
+
+            let embed = new Discord.RichEmbed();
+            embed.title = conf.coin + " Stages";
+            embed.color = conf.color.coininfo;
+            embed.timestamp = new Date();
+
+            if (isNaN(blockcount) && blockcount.trim() !== "") {
+                embed.description = "There seems to be a problem with the `blockcount` request\n";
+            }
+            else {
+                let stgindex = conf.stages.indexOf(get_stage(blockcount));
+                for (let i = stgindex; i < conf.stages.length; i++) {
+                    let laststage = i > 0 ? conf.stages[i - 1] : { block: 0, coll: 0 };
+                    let days = (laststage.block - blockcount) / (86400 / conf.blocktime);
+                    embed.addField(
+                        "Stage " + (i + 1) + " (" + (days < 0 ? "current)" : days.toFixed(2) + " days)"),
+                        (laststage.block !== 0 && i !== stgindex ? "_Block:_ " + laststage.block + "\n" : "") +
+                        (laststage.coll < conf.stages[i].coll && i !== stgindex ? "_New collateral:_ " + conf.stages[i].coll + "\n" : "") + 
+                        (conf.stages[i].mn  !== undefined ? "_MN reward:_ "  + conf.stages[i].mn  + "\n" : "") + 
+                        (conf.stages[i].pow !== undefined ? "_POW reward:_ " + conf.stages[i].pow + "\n" : "") +
+                        (conf.stages[i].pos !== undefined ? "_POS reward:_ " + conf.stages[i].pos + "\n" : ""),
+                        true
+                    );
+                }
+            }
+
+            if (embed.fields.length > 3 && embed.fields.length % 3 === 2) // fix bad placing if a row have 2 tickers
+                embed.addBlankField(true);
 
             this.fn_send(embed);
 
@@ -932,6 +990,7 @@ class BotCommand {
                         name: "Coin Info:",
                         value:
                             " - **" + conf.prefix + "stats** : get the current stats of the " + conf.coin + " blockchain\n" +
+                            " - **" + conf.prefix + "stages** : get the info of the upcoming reward structures\n" +
                             " - **" + conf.prefix + "earnings [amount of MNs]** : get the expected earnings per masternode, aditionally you can put the amount of MNs\n" +
                             " - **" + conf.prefix + "mining <hashrate> [K/M/G/T]** : get the expected earnings with the given hashrate, aditionally you can put the hashrate multiplier (K = KHash/s, M = MHash/s, ...)"
                     },
@@ -1064,7 +1123,7 @@ client.on("message", msg => {
     
     if (conf.channel.length && !conf.channel.includes(msg.channel.id) || !msg.content.startsWith(conf.prefix) || msg.author.bot)
         return;
-    
+
     let args = msg.content.slice(conf.prefix.length).split(" ");
     let cmd = new BotCommand(msg);
 
@@ -1119,6 +1178,11 @@ client.on("message", msg => {
         case "stats": {
             if (enabled_cmd("stats", valid_request("blockcount") || valid_request("mncount") || valid_request("supply")))
                 cmd.stats();
+            break;
+        }
+        case "stages": {
+            if (enabled_cmd("stages", valid_request("blockcount")))
+                cmd.stages();
             break;
         }
         case "earnings": {
@@ -1249,28 +1313,8 @@ if (process.argv.length >= 3 && process.argv[2] === "background")
     configure_systemd("discord_cryptobot");
 else if (process.argv.length >= 3 && process.argv[2] === "handled_child")
     client.login(conf.token).then(() => {
-        console.log("Bot ready!"); 
-        // switch(process.argv[2]) { "price" "airdrop" "tip" "?" 
-        if (conf.monitor !== undefined && conf.monitor.enabled === true) {
-
-            const channel = client.channels.get(conf.monitor.channel);
-            let embeds = [];
-            let cmd = new BotCommand(undefined, txt => embeds.push(txt));
-
-            const refresh_monitor = async () => {
-                embeds = [];
-                await cmd.price();
-                await cmd.stats();
-                await cmd.earnings();
-                channel.bulkDelete(50).then(async () => {
-                    for (let emb of embeds)
-                        await channel.send(emb);
-                });
-            };
-
-            refresh_monitor();
-            channel.client.setInterval(() => refresh_monitor(), conf.monitor.interval * 1000);
-        }
+        console.log("Bot ready!");
+        start_monitor();
     });
 else
     handle_child();
