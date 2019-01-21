@@ -2,11 +2,12 @@
 /*
     Author: neo3587
     Source: https://github.com/neo3587/discord_cryptobot
-    Custom pair:
-        ticker: {
-            "CryptoBridge": "BTC"
-        }
-        if === "BTC" => CryptoBridge | else => CryptoBridge (ETH)
+    TODO:
+        Custom pair:
+            ticker: {
+                "CryptoBridge": "BTC"
+            }
+            if === "BTC" => CryptoBridge | else => CryptoBridge (ETH)
 */
 
 const Discord = require("discord.js");
@@ -356,7 +357,7 @@ function bash_cmd(cmd) {
 function create_no_exists(path, file = false) {
     if (!fs.existsSync(path)) {
         if (file)
-            fs.writeFileSync(path, "")
+            fs.writeFileSync(path, "");
         else
             fs.mkdirSync(path);
     }
@@ -484,6 +485,12 @@ class BotCommand {
                     case "avgmnreward": {
                         if (valid.mncount)
                             embed.addField("Avg. MN Reward", parseInt(mncount / (86400 / conf.blocktime)) + "d " + parseInt(mncount / (3600 / conf.blocktime) % 24) + "h " + parseInt(mncount / (60 / conf.blocktime) % 60) + "m", true);
+                        break;
+                    }
+                    case "1stmnreward": {
+                        let x3mncount = mncount * 3;
+                        if (valid.mncount)
+                            embed.addField("1st MN Reward", parseInt(x3mncount / (86400 / conf.blocktime)) + "d " + parseInt(x3mncount / (3600 / conf.blocktime) % 24) + "h " + parseInt(x3mncount / (60 / conf.blocktime) % 60) + "m", true);
                         break;
                     }
                     case "nextstage": { 
