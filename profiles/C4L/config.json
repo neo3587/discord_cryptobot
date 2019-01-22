@@ -1,0 +1,117 @@
+{
+  "special_ticker": {
+
+  },
+  "ticker": [
+    "CryptoBridge"
+  ],
+  "color": {
+    "prices": 3447003,
+    "coininfo": 888688,
+    "explorer": 888688,
+    "other": 15662976,
+    "error": 9375030
+  },
+  "devs": [
+    "534364104878587905",
+    "489966615107207189",
+    "464599914962485260"
+  ],
+  "stages": [
+    {
+      "block": 25000,
+      "coll": 2000,
+      "mn": 1.8,
+      "pos": 0.2
+    },
+    {
+      "block": 50000,
+      "coll": 2000,
+      "mn": 5.4,
+      "pos": 0.6
+    },
+    {
+      "block": 75000,
+      "coll": 5000,
+      "mn": 13.5,
+      "pos": 1.5
+    },
+    {
+      "block": 150000,
+      "coll": 5000,
+      "mn": 18,
+      "pos": 2
+    },
+    {
+      "block": 200000,
+      "coll": 5000,
+      "mn": 22.5,
+      "pos": 2.5
+    },
+    {
+      "block": 300000,
+      "coll": 5000,
+      "mn": 18,
+      "pos": 2
+    },
+    {
+      "block": 525650,
+      "coll": 5000,
+      "mn": 13.5,
+      "pos": 1.5
+    },
+    {
+      "block": 1051300,
+      "coll": 5000,
+      "mn": 9,
+      "pos": 1
+    },
+    {
+      "block": 1300000,
+      "coll": 5000,
+      "mn": 7.2,
+      "pos": 0.8
+    },
+    {
+      "block": 1500000,
+      "coll": 5000,
+      "mn": 4.5,
+      "pos": 0.5
+    }
+  ],
+  "requests": {
+    "blockcount": "/root/crypto4like-cli getblockcount",
+    "mncount": "/root/crypto4like-cli masternode count",
+    "supply": "curl -s https://explorer.crypto4likes.com/ext/getmoneysupply",
+    "balance": "curl -s https://explorer.crypto4likes.com/ext/getaddress/",
+    "blockindex": "/root/crypto4like-cli getblockhash ",
+    "blockhash": "/root/crypto4like-cli getblock ",
+    "mnstat": "/root/crypto4like-cli masternode list "
+  },
+  "statorder": [
+    "blockcount",
+    "mncount",
+    "supply",
+    "collateral",
+    "mnreward",
+    "powreward",
+    "posreward",
+    "1stmnreward",
+    "avgmnreward",
+    "nextstage",
+    "locked"
+  ],
+  "monitor": {
+    "enabled": true,
+    "channel": "537330755454369792",
+    "interval": 60
+  },
+  "hidenotsupported": false,
+  "useraddrs": true,
+  "usermns": true,
+  "channel": [ "534148355434086411" ],
+  "prefix": "!",
+  "coin": "C4L",
+  "blocktime": 60,
+  "token": "NDkwNTM4NjY1NzY4OTEwODQ5.Dn66EQ.krDSiz630cqIS9Fuywa5BSdyMGI"
+}

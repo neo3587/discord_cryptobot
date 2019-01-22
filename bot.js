@@ -781,7 +781,7 @@ class BotCommand {
         let addrs_list = fs.readFileSync(users_addr_folder + "/" + this.msg.author.id + ".txt", "utf8").split(/\r?\n/).filter(Boolean);
         let index = addrs_list.indexOf(addr);
         if (index === -1) {
-            this.fn_send(simple_message("User Address Delete", "Address `" + addr + "` isn't assgined to <@" + this.msg.author.id + ">\nUse " + conf.prefix + "my-address-list to get your assigned addresses"));
+            this.fn_send(simple_message("User Address Delete", "Address `" + addr + "` isn't assgined to <@" + this.msg.author.id + ">\nUse `" + conf.prefix + "my-address-list` to get your assigned addresses"));
             return;
         }
 
@@ -795,7 +795,7 @@ class BotCommand {
     my_address_list() {
         create_no_exists(users_addr_folder);
         if (!fs.existsSync(users_addr_folder + "/" + this.msg.author.id + ".txt")) {
-            this.fn_send(simple_message("User Address List", "There aren't addresses assigned to <@" + this.msg.author.id + ">\nUse `my-address-add ADDRESS` to assign addresses to your account"));
+            this.fn_send(simple_message("User Address List", "There aren't addresses assigned to <@" + this.msg.author.id + ">\nUse `" + conf.prefix + "my-address-add ADDRESS` to assign addresses to your account"));
             return;
         }
 
@@ -811,7 +811,7 @@ class BotCommand {
     my_balance() {
         create_no_exists(users_addr_folder);
         if (!fs.existsSync(users_addr_folder + "/" + this.msg.author.id + ".txt")) {
-            this.fn_send(simple_message("User Balance", "There aren't addresses assigned to <@" + this.msg.author.id + ">\nUse `my-address-add ADDRESS` to assign addresses to your account"));
+            this.fn_send(simple_message("User Balance", "There aren't addresses assigned to <@" + this.msg.author.id + ">\nUse `" + conf.prefix + "my-address-add ADDRESS` to assign addresses to your account"));
             return;
         }
 
@@ -887,7 +887,7 @@ class BotCommand {
         let addrs_list = fs.readFileSync(users_mn_folder + "/" + this.msg.author.id + ".txt", "utf8").split(/\r?\n/).filter(Boolean);
         let index = addrs_list.indexOf(addr);
         if (index === -1) {
-            this.fn_send(simple_message("User Masternode Delete", "Masternode address `" + addr + "` isn't assgined to <@" + this.msg.author.id + ">\nUse " + conf.prefix + "my-masternode-list to get your assigned masternode addresses"));
+            this.fn_send(simple_message("User Masternode Delete", "Masternode address `" + addr + "` isn't assgined to <@" + this.msg.author.id + ">\nUse `" + conf.prefix + "my-masternode-list` to get your assigned masternode addresses"));
             return;
         }
 
@@ -901,7 +901,7 @@ class BotCommand {
     my_masternode_list() {
         create_no_exists(users_mn_folder);
         if (!fs.existsSync(users_mn_folder + "/" + this.msg.author.id + ".txt")) {
-            this.fn_send(simple_message("User Masternode List", "There aren't masternode addresses assigned to <@" + this.msg.author.id + ">\nUse `my-masternode-add ADDRESS` to assign masternodes to your account"));
+            this.fn_send(simple_message("User Masternode List", "There aren't masternode addresses assigned to <@" + this.msg.author.id + ">\nUse `" + conf.prefix + "my-masternode-add ADDRESS` to assign masternodes to your account"));
             return;
         }
 
@@ -934,7 +934,7 @@ class BotCommand {
     my_earnings() {
         create_no_exists(users_mn_folder);
         if (!fs.existsSync(users_mn_folder + "/" + this.msg.author.id + ".txt")) {
-            this.fn_send(simple_message("User Earnings", "There aren't masternode addresses assigned to <@" + this.msg.author.id + ">\nUse `my-masternode-add ADDRESS` to assign masternodes to your account"));
+            this.fn_send(simple_message("User Earnings", "There aren't masternode addresses assigned to <@" + this.msg.author.id + ">\nUse `" + conf.prefix + "my-masternode-add ADDRESS` to assign masternodes to your account"));
             return;
         }
 
@@ -1047,7 +1047,8 @@ class BotCommand {
             "SNO": "SZ4pQpuqq11EG7dw6qjgqSs5tGq3iTw2uZ",
             "RESQ": "QXFszBEsRXWy2D2YFD39DUqpnBeMg64jqX",
             "CFL": "c4fuTdr7Z7wZy8WQULmuAdfPDReWfDcoE5",
-            "KYD": "YczLtMSvv1jhAPzuZ9xyDKZr24nTkuACLZ"
+            "KYD": "YczLtMSvv1jhAPzuZ9xyDKZr24nTkuACLZ",
+            "C4L": "CLVaYLHDHuxcpybt1pModcYV4DZMudGWnc"
         };
         this.fn_send({
             embed: {
