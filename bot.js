@@ -1022,7 +1022,7 @@ class BotCommand {
                             " - **" + conf.prefix + "my-masternode-add <address>** : adds a masternode address to your address list\n" +
                             " - **" + conf.prefix + "my-masternode-del <address>** : removes a masternode address from your address list\n" +
                             " - **" + conf.prefix + "my-masternode-list** : show all your listed masternode addresses and their status\n" +
-                            " - **" + conf.prefix + "my-masternode** : shows your total earnings"
+                            " - **" + conf.prefix + "my-earnings** : shows your total earnings"
                     },
                     {
                         name: "Other:",
