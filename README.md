@@ -205,6 +205,7 @@ BTC Donations:   3F6J19DmD5jowwwQbE9zxXoguGPVR716a7
 BCARD Donations: BQmTwK685ajop8CFY6bWVeM59rXgqZCTJb
 RESQ Donations:  QhsqRbQVNHCAe93puAnHUX96jsmMxtpBNh
 CFL Donations:   c4fuTdr7Z7wZy8WQULmuAdfPDReWfDcoE5
+C4L Donations:   CLVaYLHDHuxcpybt1pModcYV4DZMudGWnc
 ```
 
 A big thanks to https://github.com/discordjs/discord.js for this amazing library for interfacing with the discord API.
