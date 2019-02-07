@@ -3,11 +3,13 @@
     Author: neo3587
     Source: https://github.com/neo3587/discord_cryptobot
     TODO:
-        Custom pair:
-            ticker: {
-                "CryptoBridge": "BTC"
-            }
-            if === "BTC" => CryptoBridge | else => CryptoBridge (ETH)
+        - Custom pair:
+                ticker: {
+                    "CryptoBridge": "BTC"
+                }
+                if === "BTC" => CryptoBridge | else => CryptoBridge (ETH)
+        - multi-add and multi-del addresses: !my-address-add ADDR1 ADDR2 ADDR3 ...
+        - tradesatoshi ticker => https://tradesatoshi.com/api/public/getmarketsummary?market=LTC_BTC
 */
 
 const Discord = require("discord.js");
@@ -529,7 +531,7 @@ class BotCommand {
             }
             else {
                 let stgindex = conf.stages.indexOf(get_stage(blockcount));
-                for (let i = stgindex; i < conf.stages.length; i++) {
+                for (let i = stgindex; i < conf.stages.length && embed.fields.length < 25; i++) {
                     let laststage = i > 0 ? conf.stages[i - 1] : { block: 0, coll: 0 };
                     let days = (laststage.block - blockcount) / (86400 / conf.blocktime);
                     embed.addField(
@@ -546,7 +548,7 @@ class BotCommand {
 
             if (embed.fields.length > 3 && embed.fields.length % 3 === 2) // fix bad placing if a row have 2 tickers
                 embed.addBlankField(true);
-
+            
             this.fn_send(embed);
 
         });
@@ -1048,7 +1050,9 @@ class BotCommand {
             "RESQ": "QXFszBEsRXWy2D2YFD39DUqpnBeMg64jqX",
             "CFL": "c4fuTdr7Z7wZy8WQULmuAdfPDReWfDcoE5",
             "KYD": "YczLtMSvv1jhAPzuZ9xyDKZr24nTkuACLZ",
-            "C4L": "CLVaYLHDHuxcpybt1pModcYV4DZMudGWnc"
+            "C4L": "CLVaYLHDHuxcpybt1pModcYV4DZMudGWnc",
+            "REVU": "R9jUZVXhhnNf9dRmCSvhosEmASnmSWmJy6",
+            "MCPC": "MCwe8WxWNmcZL1CpdpG3yuudGYVphmTSLE"
         };
         this.fn_send({
             embed: {
