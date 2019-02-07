@@ -1,0 +1,376 @@
+{
+  "special_ticker": {
+
+  },
+  "ticker": [
+    "Crex24"
+  ],
+  "color": {
+    "prices": 3447003,
+    "coininfo": 888688,
+    "explorer": 888688,
+    "other": 15662976,
+    "error": 9375030
+  },
+  "devs": [
+    "416693439426592772",
+    "335114060242878465",
+    "350358662621036545",
+    "464599914962485260"
+  ],
+  "stages": [
+    {
+      "block": 20000,
+      "coll": 1000,
+      "mn": 2.25,
+      "pos": 0.75
+    },
+    {
+      "block": 30000,
+      "coll": 1000,
+      "mn": 2.8,
+      "pos": 1.2
+    },
+    {
+      "block": 40000,
+      "coll": 1000,
+      "mn": 3.9,
+      "pos": 2.1
+    },
+    {
+      "block": 50000,
+      "coll": 1000,
+      "mn": 5.24,
+      "pos": 2.76
+    },
+    {
+      "block": 60000,
+      "coll": 1000,
+      "mn": 6.6,
+      "pos": 3.4
+    },
+    {
+      "block": 70000,
+      "coll": 1000,
+      "mn": 7.98,
+      "pos": 4.02
+    },
+    {
+      "block": 80000,
+      "coll": 1000,
+      "mn": 9.38,
+      "pos": 4.68
+    },
+    {
+      "block": 90000,
+      "coll": 1000,
+      "mn": 10.8,
+      "pos": 5.2
+    },
+    {
+      "block": 100000,
+      "coll": 1000,
+      "mn": 12.48,
+      "pos": 5.52
+    },
+    {
+      "block": 110000,
+      "coll": 1000,
+      "mn": 13.7,
+      "pos": 6.3
+    },
+    {
+      "block": 120000,
+      "coll": 1000,
+      "mn": 15.18,
+      "pos": 6.82
+    },
+    {
+      "block": 130000,
+      "coll": 1000,
+      "mn": 16.68,
+      "pos": 7.32
+    },
+    {
+      "block": 140000,
+      "coll": 1000,
+      "mn": 18.2,
+      "pos": 7.8
+    },
+    {
+      "block": 150000,
+      "coll": 1000,
+      "mn": 17.625,
+      "pos": 7.375
+    },
+    {
+      "block": 160000,
+      "coll": 1000,
+      "mn": 17.04,
+      "pos": 6.96
+    },
+    {
+      "block": 170000,
+      "coll": 1000,
+      "mn": 16.445,
+      "pos": 6.555
+    },
+    {
+      "block": 180000,
+      "coll": 1000,
+      "mn": 15.84,
+      "pos": 6.16
+    },
+    {
+      "block": 190000,
+      "coll": 1000,
+      "mn": 15.225,
+      "pos": 5.775
+    },
+    {
+      "block": 200000,
+      "coll": 1000,
+      "mn": 14.6,
+      "pos": 5.4
+    },
+    {
+      "block": 210000,
+      "coll": 1000,
+      "mn": 13.965,
+      "pos": 5.035
+    },
+    {
+      "block": 220000,
+      "coll": 1000,
+      "mn": 13.32,
+      "pos": 4.68
+    },
+    {
+      "block": 230000,
+      "coll": 1000,
+      "mn": 12.665,
+      "pos": 4.335
+    },
+    {
+      "block": 240000,
+      "coll": 1000,
+      "mn": 12,
+      "pos": 4
+    },
+    {
+      "block": 250000,
+      "coll": 1000,
+      "mn": 11.325,
+      "pos": 3.675
+    },
+    {
+      "block": 260000,
+      "coll": 1000,
+      "mn": 10.64,
+      "pos": 3.36
+    },
+    {
+      "block": 270000,
+      "coll": 1000,
+      "mn": 9.945,
+      "pos": 3.055
+    },
+    {
+      "block": 280000,
+      "coll": 1000,
+      "mn": 9.24,
+      "pos": 2.76
+    },
+    {
+      "block": 290000,
+      "coll": 1000,
+      "mn": 8.525,
+      "pos": 2.475
+    },
+    {
+      "block": 300000,
+      "coll": 1000,
+      "mn": 8.424,
+      "pos": 2.376
+    },
+    {
+      "block": 310000,
+      "coll": 1000,
+      "mn": 8.321,
+      "pos": 2.279
+    },
+    {
+      "block": 320000,
+      "coll": 1000,
+      "mn": 8.216,
+      "pos": 2.184
+    },
+    {
+      "block": 330000,
+      "coll": 1000,
+      "mn": 8.109,
+      "pos": 2.091
+    },
+    {
+      "block": 340000,
+      "coll": 1000,
+      "mn": 8,
+      "pos": 2
+    },
+    {
+      "block": 350000,
+      "coll": 1000,
+      "mn": 7.889,
+      "pos": 1.911
+    },
+    {
+      "block": 360000,
+      "coll": 1000,
+      "mn": 7.776,
+      "pos": 1.824
+    },
+    {
+      "block": 370000,
+      "coll": 1000,
+      "mn": 7.661,
+      "pos": 1.739
+    },
+    {
+      "block": 380000,
+      "coll": 1000,
+      "mn": 7.544,
+      "pos": 1.656
+    },
+    {
+      "block": 390000,
+      "coll": 1000,
+      "mn": 7.425,
+      "pos": 1.575
+    },
+    {
+      "block": 400000,
+      "coll": 1000,
+      "mn": 7.304,
+      "pos": 1.496
+    },
+    {
+      "block": 410000,
+      "coll": 1000,
+      "mn": 7.181,
+      "pos": 1.419
+    },
+    {
+      "block": 420000,
+      "coll": 1000,
+      "mn": 7.056,
+      "pos": 1.344
+    },
+    {
+      "block": 430000,
+      "coll": 1000,
+      "mn": 6.929,
+      "pos": 1.271
+    },
+    {
+      "block": 440000,
+      "coll": 1000,
+      "mn": 6.8,
+      "pos": 1.2
+    },
+    {
+      "block": 450000,
+      "coll": 1000,
+      "mn": 6.669,
+      "pos": 1.131
+    },
+    {
+      "block": 460000,
+      "coll": 1000,
+      "mn": 6.536,
+      "pos": 1.064
+    },
+    {
+      "block": 470000,
+      "coll": 1000,
+      "mn": 6.401,
+      "pos": 0.999
+    },
+    {
+      "block": 480000,
+      "coll": 1000,
+      "mn": 6.264,
+      "pos": 0.936
+    },
+    {
+      "block": 490000,
+      "coll": 1000,
+      "mn": 6.125,
+      "pos": 0.875
+    },
+    {
+      "block": 500000,
+      "coll": 1000,
+      "mn": 5.984,
+      "pos": 0.816
+    },
+    {
+      "block": 510000,
+      "coll": 1000,
+      "mn": 5.841,
+      "pos": 0.759
+    },
+    {
+      "block": 520000,
+      "coll": 1000,
+      "mn": 5.696,
+      "pos": 0.704
+    },
+    {
+      "block": 530000,
+      "coll": 1000,
+      "mn": 5.549,
+      "pos": 0.651
+    },
+    {
+      "block": -1,
+      "coll": 1000,
+      "mn": 5.4,
+      "pos": 0.6
+    }
+  ],
+  "requests": {
+    "blockcount": "MCPCoin-cli getblockcount",
+    "mncount": "MCPCoin-cli masternode count",
+    "supply": "curl -s http://108.61.185.240:3001/ext/getmoneysupply",
+    "balance": "curl -s http://108.61.185.240:3001/ext/getaddress/",
+    "blockindex": "MCPCoin-cli getblockhash ",
+    "blockhash": "MCPCoin-cli getblock ",
+    "mnstat": "MCPCoin-cli masternode list "
+  },
+  "statorder": [
+    "blockcount",
+    "mncount",
+    "supply",
+    "collateral",
+    "mnreward",
+    "powreward",
+    "posreward",
+    "1stmnreward",
+    "avgmnreward",
+    "nextstage",
+    "locked"
+  ],
+  "monitor": {
+    "enabled": true,
+    "channel": "543213310951161856",
+    "interval": 60
+  },
+  "hidenotsupported": false,
+  "useraddrs": true,
+  "usermns": true,
+  "channel": [ "543213270891495464" ],
+  "prefix": "!",
+  "coin": "MCPC",
+  "blocktime": 60,
+  "token": "NDkwNTM4NjY1NzY4OTEwODQ5.Dn66EQ.krDSiz630cqIS9Fuywa5BSdyMGI"
+}
