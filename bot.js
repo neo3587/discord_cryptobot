@@ -10,7 +10,6 @@
                 if === "BTC" => CryptoBridge | else => CryptoBridge (ETH)
         - multi-add and multi-del addresses: !my-address-add ADDR1 ADDR2 ADDR3 ...
         - tradesatoshi ticker => https://tradesatoshi.com/api/public/getmarketsummary?market=LTC_BTC
-        - zolex ticker => https://zolex.org/api
         - coinbene ticker => https://github.com/Coinbene/API-Documents/wiki/1.1.0-Get-Ticker-%5BMarket%5D
 */
 
@@ -145,6 +144,14 @@ function get_ticker(exchange) {
                 resolve(exdata);
             }).catch(() => resolve(exdata));
         };
+        const ternary_try = (fn_try, res_catch) => {
+            try {
+                return fn_try();
+            }
+            catch (e) {
+                return res_catch();
+            }
+        };
 
         let exdata = new ExchangeData(exchange);
         let tmp;
@@ -193,15 +200,10 @@ function get_ticker(exchange) {
                 Promise.all([
                     async_request(`https://c-cex.com/t/${coin_lw}-btc.json`).catch(() => { }),
                     async_request(`https://c-cex.com/t/volume_btc.json`).catch(() => { })
-                ]).then(([res, vol_res]) => {
+                ]).then(([ticker, volume]) => {
                     try {
-                        exdata.fillj(JSON.parse(res)["ticker"], "lastprice", "", "buy", "sell", "");
-                        try {
-                            exdata.volume = parseFloat(JSON.parse(vol_res)["ticker"][coin_lw]["vol"]).toFixed(8);
-                        }
-                        catch (e) {
-                            exdata.volume = "Error";
-                        }
+                        exdata.fillj(JSON.parse(ticker)["ticker"], "lastprice", "", "buy", "sell", "");
+                        exdata.volume = ternary_try(() => parseFloat(JSON.parse(volume)["ticker"][coin_lw]["vol"]).toFixed(8), "Error");
                     }
                     catch (e) { /**/ }
                     resolve(exdata);
@@ -263,6 +265,28 @@ function get_ticker(exchange) {
             case "coinsbit": {
                 exdata.link = `https://coinsbit.io/trade/${coin_up}_BTC`;
                 js_request(`https://coinsbit.io/api/v1/public/ticker?market=${coin_up}_BTC`, res => exdata.fillj(res["result"], "last", "deal", "bid", "ask", "change"));
+                break;
+            }
+            case "zolex": {
+                exdata.link = `https://zolex.org/trading/${coin_lw}btc`;
+                Promise.all([
+                    async_request(`https://zolex.org/api/v2/tickers/${coin_lw}btc`).catch(() => { }),
+                    async_request(`https://zolex.org/api/v2/k?market=${coin_lw}btc&limit=1440&period=1`).catch(() => { })
+                ]).then(([ticker, ohlc]) => {
+                    try {
+                        ticker = JSON.parse(ticker)["ticker"];
+                        ticker.chg = ternary_try(() => (ticker["last"] / JSON.parse(ohlc)[0][1] - 1) * 100, undefined);
+                        exdata.fillj(ticker, "last", "", "buy", "sell", "chg");
+                        exdata.volume = ternary_try(() => {
+                            let res = 0.00;
+                            for (let x of JSON.parse(ohlc).filter((x, i) => x[5] > 0)) 
+                                res += x.slice(1, 5).reduce((pv, cv, i) => pv + cv) / 4 * x[5];
+                            return res.toFixed(8);
+                        }, "Error");
+                    }
+                    catch (e) { /**/ }
+                    resolve(exdata);
+                });
                 break;
             }
             default: {

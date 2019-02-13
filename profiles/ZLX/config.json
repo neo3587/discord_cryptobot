@@ -1,0 +1,70 @@
+{
+  "special_ticker": {
+
+  },
+  "ticker": [
+    "Zolex"
+  ],
+  "color": {
+    "prices": 3447003,
+    "coininfo": 888688,
+    "explorer": 888688,
+    "other": 15662976,
+    "error": 9375030
+  },
+  "devs": [
+    "542147084040536064",
+    "523709009862197257",
+    "481091255573413888",
+    "464599914962485260"
+  ],
+  "stages": [
+    {
+      "block": 262800,
+      "coll": 1000,
+      "mn": 0.7,
+      "pos": 0.3
+    },
+    {
+      "block": -1,
+      "coll": 1000,
+      "mn": 0.35,
+      "pos": 0.15
+    }
+  ],
+  "requests": {
+    "blockcount": "zolexcoin-cli getblockcount",
+    "mncount": "zolexcoin-cli masternode count",
+    "supply": "curl -s http://155.138.162.119/ext/getmoneysupply",
+    "balance": "curl -s http://155.138.162.119/ext/getaddress/",
+    "blockindex": "zolexcoin-cli getblockhash ",
+    "blockhash": "zolexcoin-cli getblock ",
+    "mnstat": "zolexcoin-cli masternode list "
+  },
+  "statorder": [
+    "blockcount",
+    "mncount",
+    "supply",
+    "collateral",
+    "mnreward",
+    "powreward",
+    "posreward",
+    "1stmnreward",
+    "avgmnreward",
+    "nextstage",
+    "locked"
+  ],
+  "monitor": {
+    "enabled": true,
+    "channel": "544253891697573890",
+    "interval": 60
+  },
+  "hidenotsupported": false,
+  "useraddrs": true,
+  "usermns": true,
+  "channel": [ "544744474862026792" ],
+  "prefix": "!",
+  "coin": "ZLX",
+  "blocktime": 60,
+  "token": "NDkwNTM4NjY1NzY4OTEwODQ5.Dn66EQ.krDSiz630cqIS9Fuywa5BSdyMGI"
+}
