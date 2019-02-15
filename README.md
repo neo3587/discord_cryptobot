@@ -77,7 +77,8 @@ You'll have to modify the "config.json" file to make it fit with your cryptocurr
 "ticker": [
     "CryptoBridge",
     "Crex24",
-    "CoinExchange"
+    "CoinExchange",
+    ["Crex24", "BTC", "USD"]  // optionally you can set custom pairs like this
 ]
 ```
 - **special_ticker:** CoinExchange requires a specific market id from https://www.coinexchange.io/api/v1/getmarkets to get a filtered ticker, not necessary to touch this if you don't use this exchange.
