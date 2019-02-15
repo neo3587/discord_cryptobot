@@ -3,11 +3,6 @@
     Author: neo3587
     Source: https://github.com/neo3587/discord_cryptobot
     TODO:
-        - Custom pair:
-                ticker: {
-                    "CryptoBridge": "BTC"
-                }
-                if === "BTC" => CryptoBridge | else => CryptoBridge (ETH)
         - multi-add and multi-del addresses: !my-address-add ADDR1 ADDR2 ADDR3 ...
         - tradesatoshi ticker => https://tradesatoshi.com/api/public/getmarketsummary?market=LTC_BTC
         - coinbene ticker => https://github.com/Coinbene/API-Documents/wiki/1.1.0-Get-Ticker-%5BMarket%5D
@@ -130,11 +125,9 @@ function configure_systemd(name) {
     }
     process.exit();
 }
-function get_ticker(exchange) {
+function get_ticker(ticker) {
     return new Promise((resolve, reject) => {
 
-        const coin_up = conf.coin.toUpperCase();
-        const coin_lw = conf.coin.toLowerCase();
         const js_request = (url, fn) => {
             async_request(url).then(x => {
                 try {
@@ -153,57 +146,61 @@ function get_ticker(exchange) {
             }
         };
 
-        let exdata = new ExchangeData(exchange);
+        const coin_up = Array.isArray(ticker) ? [ticker[1].toUpperCase(), ticker[2].toUpperCase()] : [conf.coin.toUpperCase(), "BTC"];
+        const coin_lw = Array.isArray(ticker) ? [ticker[1].toLowerCase(), ticker[2].toLowerCase()] : [conf.coin.toLowerCase(), "btc"];
+        const exchange = Array.isArray(ticker) ? ticker[0] : ticker;
+
+        let exdata = new ExchangeData(exchange + (coin_up[1] !== "BTC" ? ` (${coin_up[1]})` : ``));
         let tmp;
 
         switch (exchange.toLowerCase()) {
             case "cryptobridge": {
-                exdata.link = `https://wallet.crypto-bridge.org/market/BRIDGE.${coin_up}_BRIDGE.BTC`;
-                js_request(`https://api.crypto-bridge.org/api/v1/ticker/${coin_up}_BTC`, res => exdata.fillj(res, "last", "volume", "bid", "ask", "percentChange"));
+                exdata.link = `https://wallet.crypto-bridge.org/market/BRIDGE.${coin_up[0]}_BRIDGE.${coin_up[1]}`;
+                js_request(`https://api.crypto-bridge.org/api/v1/ticker/${coin_up[0]}_${coin_up[1]}`, res => exdata.fillj(res, "last", "volume", "bid", "ask", "percentChange"));
                 break;
             }
             case "crex24": {
-                exdata.link = `https://crex24.com/exchange/${coin_up}-BTC`;
-                js_request(`https://api.crex24.com/v2/public/tickers?instrument=${coin_up}-BTC`, res => exdata.fillj(res[0], "last", "volumeInBtc", "bid", "ask", "percentChange"));
+                exdata.link = `https://crex24.com/exchange/${coin_up[0]}-${coin_up[1]}`;
+                js_request(`https://api.crex24.com/v2/public/tickers?instrument=${coin_up[0]}-${coin_up[1]}`, res => exdata.fillj(res[0], "last", "volumeInBtc", "bid", "ask", "percentChange"));
                 break;
             }
             case "coinexchange": {
-                exdata.link = `https://www.coinexchange.io/market/${coin_up}/BTC`;
+                exdata.link = `https://www.coinexchange.io/market/${coin_up[0]}/${coin_up[1]}`;
                 js_request(`https://www.coinexchange.io/api/v1/getmarketsummary?market_id=` + conf.special_ticker.CoinExchange, res => exdata.fillj(res["result"], "LastPrice", "BTCVolume", "BidPrice", "AskPrice", "Change"));
                 break;
             }
             case "graviex": {
-                exdata.link = `https://graviex.net/markets/${coin_lw}btc`;
-                js_request(`https://graviex.net:443//api/v2/tickers/${coin_lw}btc.json`, res => exdata.fillj(res["ticker"], "last", "volbtc", "buy", "sell", "change"));
+                exdata.link = `https://graviex.net/markets/${coin_lw[0]}${coin_lw[1]}`;
+                js_request(`https://graviex.net:443/api/v2/tickers/${coin_lw[0]}${coin_lw[1]}.json`, res => exdata.fillj(res["ticker"], "last", "volbtc", "buy", "sell", "change"));
                 break;
             }
             case "escodex": {
-                exdata.link = `https://wallet.escodex.com/market/ESCODEX.${coin_up}_ESCODEX.BTC`;
-                js_request(`http://labs.escodex.com/api/ticker`, res => exdata.fillj(res.find(x => x.base === "BTC" && x.quote === coin_up), "latest", "base_volume", "lowest_ask", "highest_bid", "percent_change"));
+                exdata.link = `https://wallet.escodex.com/market/ESCODEX.${coin_up[0]}_ESCODEX.${coin_up[1]}`;
+                js_request(`http://labs.escodex.com/api/ticker`, res => exdata.fillj(res.find(x => x.base === coin_up[1] && x.quote === coin_up[0]), "latest", "base_volume", "lowest_ask", "highest_bid", "percent_change"));
                 break;
             }
             case "cryptopia": {
-                exdata.link = `https://www.cryptopia.co.nz/Exchange/?market=${coin_up}_BTC`;
-                js_request(`https://www.cryptopia.co.nz/api/GetMarket/${coin_up}_BTC`, res => exdata.fillj(res["Data"], "LastPrice", "BaseVolume", "AskPrice", "BidPrice", "Change"));
+                exdata.link = `https://www.cryptopia.co.nz/Exchange/?market=${coin_up[0]}_${coin_up[1]}`;
+                js_request(`https://www.cryptopia.co.nz/api/GetMarket/${coin_up[0]}_${coin_up[1]}`, res => exdata.fillj(res["Data"], "LastPrice", "BaseVolume", "AskPrice", "BidPrice", "Change"));
                 break;
             }
             case "stex": {
-                exdata.link = `https://app.stex.com/en/trade/pair/BTC/${coin_up}`;
+                exdata.link = `https://app.stex.com/en/trade/pair/${coin_up[1]}/${coin_up[0]}`;
                 js_request(`https://app.stex.com/api2/ticker`, res => {
-                    tmp = res.find(x => x.market_name === `${coin_up}_BTC`);
+                    tmp = res.find(x => x.market_name === `${coin_up[0]}_${coin_up[1]}`);
                     exdata.fill(tmp["last"], (parseFloat(tmp["last"]) + parseFloat(tmp["lastDayAgo"])) / 2 * tmp["vol"], tmp["ask"], tmp["bid"], tmp["last"] / tmp["lastDayAgo"]); // volume and change not 100% accurate
                 });
                 break;
             }
             case "c-cex": {
-                exdata.link = `https://c-cex.com/?p=${coin_lw}-btc`;
+                exdata.link = `https://c-cex.com/?p=${coin_lw[0]}-{coin_lw[1]}`;
                 Promise.all([
-                    async_request(`https://c-cex.com/t/${coin_lw}-btc.json`).catch(() => { }),
-                    async_request(`https://c-cex.com/t/volume_btc.json`).catch(() => { })
+                    async_request(`https://c-cex.com/t/${coin_lw[0]}-${coin_lw[1]}.json`).catch(() => { }),
+                    async_request(`https://c-cex.com/t/volume_${coin_lw[1]}.json`).catch(() => { })
                 ]).then(([ticker, volume]) => {
                     try {
                         exdata.fillj(JSON.parse(ticker)["ticker"], "lastprice", "", "buy", "sell", "");
-                        exdata.volume = ternary_try(() => parseFloat(JSON.parse(volume)["ticker"][coin_lw]["vol"]).toFixed(8), "Error");
+                        exdata.volume = ternary_try(() => parseFloat(JSON.parse(volume)["ticker"][coin_lw[0]]["vol"]).toFixed(8), "Error");
                     }
                     catch (e) { /**/ }
                     resolve(exdata);
@@ -211,67 +208,67 @@ function get_ticker(exchange) {
                 break;
             }
             case "hitbtc": {
-                exdata.link = `https://hitbtc.com/${coin_up}-to-BTC`;
-                js_request(`https://api.hitbtc.com/api/2/public/ticker/${coin_up}BTC`, res => exdata.fillj(res, "last", "volumeQuote", "ask", "bid", "")); // change not supported
+                exdata.link = `https://hitbtc.com/${coin_up[0]}-to-${coin_up[1]}`;
+                js_request(`https://api.hitbtc.com/api/2/public/ticker/${coin_up[0]}${coin_up[1]}`, res => exdata.fillj(res, "last", "volumeQuote", "ask", "bid", "")); // change not supported
                 break;
             }
             case "yobit": {
-                exdata.link = `https://yobit.net/en/trade/${coin_up}/BTC`;
-                js_request(`https://yobit.net/api/2/${coin_lw}_btc/ticker`, res => exdata.fillj(res["ticker"], "last", "vol", "buy", "sell", "")); // change not supported
+                exdata.link = `https://yobit.net/en/trade/${coin_up[0]}/${coin_up[1]}`;
+                js_request(`https://yobit.net/api/2/${coin_lw[0]}_${coin_lw[1]}/ticker`, res => exdata.fillj(res["ticker"], "last", "vol", "buy", "sell", "")); // change not supported
                 break;
             }
             case "bittrex": {
-                exdata.link = `https://www.bittrex.com/Market/Index?MarketName=BTC-${coin_up}`;
-                js_request(`https://bittrex.com/api/v1.1/public/getmarketsummary?market=btc-${coin_lw}`, res => {
+                exdata.link = `https://www.bittrex.com/Market/Index?MarketName=${coin_up[1]}-${coin_up[0]}`;
+                js_request(`https://bittrex.com/api/v1.1/public/getmarketsummary?market=${coin_lw[1]}-${coin_lw[0]}`, res => {
                     tmp = res["result"][0];
                     exdata.fill(tmp["Last"], tmp["BaseVolume"], tmp["Bid"], tmp["Ask"], tmp["Last"] / tmp["PrevDay"]); // change not 100% accurate
                 });
                 break;
             }
             case "southxchange": {
-                exdata.link = `https://www.southxchange.com/Market/Book/${coin_up}/BTC`;
-                js_request(`https://www.southxchange.com/api/price/${coin_up}/BTC`, res => exdata.fillj(res, "Last", "Volume24Hr", "Bid", "Ask", "Variation24Hr"));
+                exdata.link = `https://www.southxchange.com/Market/Book/${coin_up[0]}/${coin_up[1]}`;
+                js_request(`https://www.southxchange.com/api/price/${coin_up[0]}/${coin_up[1]}`, res => exdata.fillj(res, "Last", "Volume24Hr", "Bid", "Ask", "Variation24Hr"));
                 break;
             }
             case "exrates": {
                 exdata.link = `https://exrates.me/dashboard`; // no filter
-                js_request(`https://exrates.me/openapi/v1/public/ticker?currency_pair=${coin_lw}_btc`, res => exdata.fillj(res[0], "last", "quoteVolume", "highestBid", "lowestAsk", "percentChange"));
+                js_request(`https://exrates.me/openapi/v1/public/ticker?currency_pair=${coin_lw[0]}_${coin_lw[1]}`, res => exdata.fillj(res[0], "last", "quoteVolume", "highestBid", "lowestAsk", "percentChange"));
                 break;
             }
             case "binance": {
-                exdata.link = `https://www.binance.com/es/trade/${coin_up}_BTC`;
-                js_request(`https://api.binance.com/api/v1/ticker/24hr?symbol=${coin_up}BTC`, res => exdata.fillj(res, "lastPrice", "quoteVolume", "bidPrice", "askPrice", "priceChangePercent"));
+                exdata.link = `https://www.binance.com/es/trade/${coin_up[0]}_${coin_up[1]}`;
+                js_request(`https://api.binance.com/api/v1/ticker/24hr?symbol=${coin_up[0]}${coin_up[1]}`, res => exdata.fillj(res, "lastPrice", "quoteVolume", "bidPrice", "askPrice", "priceChangePercent"));
                 break;
             }
             case "bitfinex": {
-                exdata.link = `https://www.bitfinex.com/t/${coin_up}:BTC`;
+                exdata.link = `https://www.bitfinex.com/t/${coin_up[0]}:${coin_up[1]}`;
                 // [bid, bidsize, ask, asksize, daychg, daychg%, last, vol, high, low]
-                js_request(`https://api.bitfinex.com/v2/ticker/t${coin_up}BTC`, res => exdata.fill(res[6], (res[8] + res[9]) / 2 * res[7], res[0], res[2], res[5])); // volume not 100% accurate
+                js_request(`https://api.bitfinex.com/v2/ticker/t${coin_up[0]}${coin_up[1]}`, res => exdata.fill(res[6], (res[8] + res[9]) / 2 * res[7], res[0], res[2], res[5])); // volume not 100% accurate
                 break;
             }
             case "coinex": {
-                exdata.link = `https://www.coinex.com/exchange?currency=btc&dest=${coin_lw}#limit`;
-                js_request(`https://api.coinex.com/v1/market/ticker?market=${coin_up}BTC`, res => {
+                exdata.link = `https://www.coinex.com/exchange?currency=${coin_lw[1]}&dest=${coin_lw[0]}#limit`;
+                js_request(`https://api.coinex.com/v1/market/ticker?market=${coin_up[0]}${coin_up[1]}`, res => {
                     tmp = res["data"]["ticker"];
                     exdata.fill(tmp["last"], (parseFloat(tmp["high"]) + parseFloat(tmp["low"])) / 2 * tmp["vol"], tmp["buy"], tmp["sell"], tmp["last"] / tmp["open"]); // volume not 100% accurate
                 });
                 break;
             }
             case "p2pb2b": {
-                exdata.link = `https://p2pb2b.io/trade/${coin_up}_BTC`;
-                js_request(`https://p2pb2b.io/api/v1/public/ticker?market=${coin_up}_BTC`, res => exdata.fillj(res["result"], "last", "deal", "bid", "ask", "change"));
+                exdata.link = `https://p2pb2b.io/trade/${coin_up[0]}_${coin_up[1]}`;
+                js_request(`https://p2pb2b.io/api/v1/public/ticker?market=${coin_up[0]}_${coin_up[1]}`, res => exdata.fillj(res["result"], "last", "deal", "bid", "ask", "change"));
                 break;
             }
             case "coinsbit": {
-                exdata.link = `https://coinsbit.io/trade/${coin_up}_BTC`;
-                js_request(`https://coinsbit.io/api/v1/public/ticker?market=${coin_up}_BTC`, res => exdata.fillj(res["result"], "last", "deal", "bid", "ask", "change"));
+                exdata.link = `https://coinsbit.io/trade/${coin_up[0]}_${coin_up[1]}`;
+                js_request(`https://coinsbit.io/api/v1/public/ticker?market=${coin_up[0]}_${coin_up[1]}`, res => exdata.fillj(res["result"], "last", "deal", "bid", "ask", "change"));
                 break;
             }
             case "zolex": {
-                exdata.link = `https://zolex.org/trading/${coin_lw}btc`;
+                exdata.link = `https://zolex.org/trading/${coin_lw[0]}${coin_lw[1]}`;
                 Promise.all([
-                    async_request(`https://zolex.org/api/v2/tickers/${coin_lw}btc`).catch(() => { }),
-                    async_request(`https://zolex.org/api/v2/k?market=${coin_lw}btc&limit=1440&period=1`).catch(() => { })
+                    async_request(`https://zolex.org/api/v2/tickers/${coin_lw[0]}${coin_lw[1]}`).catch(() => { }),
+                    async_request(`https://zolex.org/api/v2/k?market=${coin_lw[0]}${coin_lw[1]}&limit=1440&period=1`).catch(() => { })
                 ]).then(([ticker, ohlc]) => {
                     try {
                         ticker = JSON.parse(ticker)["ticker"];
@@ -1358,7 +1355,6 @@ client.on("message", msg => {
     }
 
 });
-
 
 if (process.argv.length >= 3 && process.argv[2] === "background")
     configure_systemd("discord_cryptobot");

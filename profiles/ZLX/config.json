@@ -3,7 +3,8 @@
 
   },
   "ticker": [
-    "Zolex"
+    "Zolex",
+    [ "Zolex", "ZLX", "ETH" ]
   ],
   "color": {
     "prices": 3447003,
