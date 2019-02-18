@@ -20,7 +20,7 @@ const users_mn_folder = path.dirname(process.argv[1]) + "/.db_users_mn";
 
 
 /** @typedef {Object} Configuration
-  * @property {string[]} special_ticker -
+  * @property {Array<string|string[]>} special_ticker -
   * @property {string[]} ticker -
   * @property {number[]} color -
   * @property {string[]} devs -
@@ -58,13 +58,13 @@ class ExchangeData {
         this.fill(json[price], json[volume], json[buy], json[sell], json[change]);
     }
     fill(price, volume, buy, sell, change) {
-        if (!(price || volume || buy || sell || change))
+        if (price === undefined && volume === undefined && buy === undefined && sell === undefined && change === undefined)
             return;
-        this.price  = price  && parseFloat(price).toFixed(8);
-        this.volume = volume && parseFloat(volume).toFixed(8);
-        this.buy    = buy    && parseFloat(buy).toFixed(8);
-        this.sell   = sell   && parseFloat(sell).toFixed(8);
-        this.change = change && (change >= 0.0 ? "+" : "") + parseFloat(change).toFixed(2) + "%";
+        this.price  = isNaN(price)  ? undefined : parseFloat(price).toFixed(8);
+        this.volume = isNaN(volume) ? undefined : parseFloat(volume).toFixed(8);
+        this.buy    = isNaN(buy)    ? undefined : parseFloat(buy).toFixed(8);
+        this.sell   = isNaN(sell)   ? undefined : parseFloat(sell).toFixed(8);
+        this.change = isNaN(change) ? undefined : (change >= 0.0 ? "+" : "") + parseFloat(change).toFixed(2) + "%";
     }
 }
 
@@ -142,16 +142,24 @@ function get_ticker(ticker) {
                 return fn_try();
             }
             catch (e) {
-                return res_catch();
+                return res_catch;
             }
         };
 
-        const coin_up = Array.isArray(ticker) ? [ticker[1].toUpperCase(), ticker[2].toUpperCase()] : [conf.coin.toUpperCase(), "BTC"];
-        const coin_lw = Array.isArray(ticker) ? [ticker[1].toLowerCase(), ticker[2].toLowerCase()] : [conf.coin.toLowerCase(), "btc"];
-        const exchange = Array.isArray(ticker) ? ticker[0] : ticker;
+        let exdata, tmp, coin_up, coin_lw, exchange;
 
-        let exdata = new ExchangeData(exchange + (coin_up[1] !== "BTC" ? ` (${coin_up[1]})` : ``));
-        let tmp;
+        if (Array.isArray(ticker)) {
+            coin_up = [ticker[1].toUpperCase(), ticker[2].toUpperCase()];
+            coin_lw = [ticker[1].toLowerCase(), ticker[2].toLowerCase()];
+            exchange = ticker[0];
+            exdata = new ExchangeData(`${exchange} (${coin_up[0] !== conf.coin.toUpperCase() ? coin_up[0] + "-" : ""}${coin_up[1]})`);
+        }
+        else {
+            coin_up = [conf.coin.toUpperCase(), "BTC"];
+            coin_lw = [conf.coin.toLowerCase(), "btc"];
+            exchange = ticker;
+            exdata = new ExchangeData(exchange);
+        }
 
         switch (exchange.toLowerCase()) {
             case "cryptobridge": {
@@ -188,7 +196,7 @@ function get_ticker(ticker) {
                 exdata.link = `https://app.stex.com/en/trade/pair/${coin_up[1]}/${coin_up[0]}`;
                 js_request(`https://app.stex.com/api2/ticker`, res => {
                     tmp = res.find(x => x.market_name === `${coin_up[0]}_${coin_up[1]}`);
-                    exdata.fill(tmp["last"], (parseFloat(tmp["last"]) + parseFloat(tmp["lastDayAgo"])) / 2 * tmp["vol"], tmp["ask"], tmp["bid"], tmp["last"] / tmp["lastDayAgo"]); // volume and change not 100% accurate
+                    exdata.fill(tmp["last"], (parseFloat(tmp["last"]) + parseFloat(tmp["lastDayAgo"])) / 2 * tmp["vol"], tmp["ask"], tmp["bid"], tmp["lastDayAgo"] !== 0 ? (tmp["last"] / tmp["lastDayAgo"] - 1) * 100 : 0); // volume and change not 100% accurate
                 });
                 break;
             }
@@ -269,16 +277,19 @@ function get_ticker(ticker) {
                 Promise.all([
                     async_request(`https://zolex.org/api/v2/tickers/${coin_lw[0]}${coin_lw[1]}`).catch(() => { }),
                     async_request(`https://zolex.org/api/v2/k?market=${coin_lw[0]}${coin_lw[1]}&limit=1440&period=1`).catch(() => { })
-                ]).then(([ticker, ohlc]) => {
+                ]).then(([res, ohlc]) => {
                     try {
-                        ticker = JSON.parse(ticker)["ticker"];
-                        ticker.chg = ternary_try(() => (ticker["last"] / JSON.parse(ohlc)[0][1] - 1) * 100, undefined);
-                        exdata.fillj(ticker, "last", "", "buy", "sell", "chg");
+                        res = JSON.parse(res)["ticker"];
+                        res.chg = ternary_try(() => {
+                            tmp = JSON.parse(ohlc);
+                            return tmp[0][1] !== 0 ? (res["last"] / tmp[0][1] - 1) * 100 : 0;
+                        }, 0);
+                        exdata.fillj(res, "last", "", "buy", "sell", "chg");
                         exdata.volume = ternary_try(() => {
-                            let res = 0.00;
-                            for (let x of JSON.parse(ohlc).filter((x, i) => x[5] > 0)) 
-                                res += x.slice(1, 5).reduce((pv, cv, i) => pv + cv) / 4 * x[5];
-                            return res.toFixed(8);
+                            let vol = 0.00;
+                            for (let x of JSON.parse(ohlc).filter(x => x[5] > 0)) 
+                                vol += x.slice(1, 5).reduce((pv, cv) => pv + cv) / 4 * x[5];
+                            return vol.toFixed(8);
                         }, "Error");
                     }
                     catch (e) { /**/ }
@@ -296,16 +307,16 @@ function get_ticker(ticker) {
 function price_avg() {
     return new Promise((resolve, reject) => {
         let promises = [];
-        for (let ticker of conf.ticker)
+        for (let ticker of conf.ticker.filter(x => !Array.isArray(x) || x[2].toUpperCase() === "BTC"))
             promises.push(get_ticker(ticker));
         Promise.all(promises).then(values => {
             let price = 0.00, weight = 0.00;
-            values = values.filter((x, i) => !isNaN(x.price));
-            values.forEach((x, i) => {
+            values = values.filter(x => !isNaN(x.price));
+            values.forEach(x => {
                 x.volume = isNaN(x.volume) ? 0 : parseFloat(x.volume);
                 weight += x.volume;
             });
-            values.forEach((x, i) => price += parseFloat(x.price) * (weight !== 0 ? x.volume / weight : 1 / values.length));
+            values.forEach(x => price += parseFloat(x.price) * (weight !== 0 ? x.volume / weight : 1 / values.length));
             resolve(values.length === 0 ? undefined : price);
         });
     });
@@ -1365,3 +1376,4 @@ else if (process.argv.length >= 3 && process.argv[2] === "handled_child")
     });
 else
     handle_child();
+
