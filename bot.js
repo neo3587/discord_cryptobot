@@ -1183,7 +1183,7 @@ client.on("message", msg => {
     if (conf.channel.length && !conf.channel.includes(msg.channel.id) || !msg.content.startsWith(conf.prefix) || msg.author.bot)
         return;
 
-    let args = msg.content.slice(conf.prefix.length).split(" ");
+    let args = msg.content.slice(conf.prefix.length).split(" ").filter(x => x.length);
     let cmd = new BotCommand(msg);
 
     const error_noparam = (n, descr) => {
