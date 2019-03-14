@@ -3,9 +3,13 @@
     Author: neo3587
     Source: https://github.com/neo3587/discord_cryptobot
     TODO:
-        - multi-add and multi-del addresses: !my-address-add ADDR1 ADDR2 ADDR3 ...
         - tradesatoshi ticker => https://tradesatoshi.com/api/public/getmarketsummary?market=LTC_BTC
         - coinbene ticker => https://github.com/Coinbene/API-Documents/wiki/1.1.0-Get-Ticker-%5BMarket%5D
+        - !addnodes ?
+        - !my-masternode-list -> click => info... is it even possible?, if not => field message (status, protocol, last seen, last payed, active time)
+        - !my-address-del all, !my-masternode-del all
+        - share api calls on monitor to decrease the network usage
+        - check if bulkdelete fails cause 2 weeks old messages => delete all them 1 by 1
 */
 
 const Discord = require("discord.js");
@@ -20,8 +24,8 @@ const users_mn_folder = path.dirname(process.argv[1]) + "/.db_users_mn";
 
 
 /** @typedef {Object} Configuration
-  * @property {Array<string|string[]>} special_ticker -
-  * @property {string[]} ticker -
+  * @property {string[]} special_ticker -
+  * @property {Array<string|string[]>} ticker -
   * @property {number[]} color -
   * @property {string[]} devs -
   * @property {{block: number, coll?: number, mn?: number, pos?: number, pow?: number}[]} stages -
@@ -184,7 +188,7 @@ function get_ticker(ticker) {
             }
             case "escodex": {
                 exdata.link = `https://wallet.escodex.com/market/ESCODEX.${coin_up[0]}_ESCODEX.${coin_up[1]}`;
-                js_request(`http://labs.escodex.com/api/ticker`, res => exdata.fillj(res.find(x => x.base === coin_up[1] && x.quote === coin_up[0]), "latest", "base_volume", "lowest_ask", "highest_bid", "percent_change"));
+                js_request(`http://labs.escodex.com/api/ticker`, res => exdata.fillj(res.find(x => x.base === coin_up[1] && x.quote === coin_up[0]), "latest", "base_volume", "highest_bid", "lowest_ask", "percent_change"));
                 break;
             }
             case "cryptopia": {
@@ -804,44 +808,48 @@ class BotCommand {
         });
     }
 
-    my_address_add(addr) {
+    my_address_add(addrs) {
         create_no_exists(users_addr_folder);
-        try {
-            let json = JSON.parse(bash_cmd(conf.requests.balance + addr));
-            if (json["sent"] !== undefined && json["received"] !== undefined && json["balance"] !== undefined) {
-                let addrs_list = fs.existsSync(users_addr_folder + "/" + this.msg.author.id + ".txt") ?  fs.readFileSync(users_addr_folder + "/" + this.msg.author.id + ".txt", "utf8").split(/\r?\n/) : [];
-                if (addrs_list.indexOf(addr) === -1) {
-                    fs.writeFileSync(users_addr_folder + "/" + this.msg.author.id + ".txt", addrs_list.concat([addr]).join("\n"));
-                    this.fn_send(simple_message("User Address Add", "Address `" + addr + "` assigned to <@" + this.msg.author.id + ">"));
+        for (let addr of addrs) {
+            try {
+                let json = JSON.parse(bash_cmd(conf.requests.balance + addr));
+                if (json["sent"] !== undefined && json["received"] !== undefined && json["balance"] !== undefined) {
+                    let addrs_list = fs.existsSync(users_addr_folder + "/" + this.msg.author.id + ".txt") ? fs.readFileSync(users_addr_folder + "/" + this.msg.author.id + ".txt", "utf8").split(/\r?\n/) : [];
+                    if (addrs_list.indexOf(addr) === -1) {
+                        fs.writeFileSync(users_addr_folder + "/" + this.msg.author.id + ".txt", addrs_list.concat([addr]).join("\n"));
+                        this.fn_send(simple_message("User Address Add", "Address `" + addr + "` assigned to <@" + this.msg.author.id + ">"));
+                    }
+                    else {
+                        this.fn_send(simple_message("User Address Add", "Address `" + addr + "` already has been assigned to <@" + this.msg.author.id + ">"));
+                    }
+                    continue;
                 }
-                else 
-                    this.fn_send(simple_message("User Address Add", "Address `" + addr + "` already has been assigned to <@" + this.msg.author.id + ">"));
+            }
+            catch (e) { /**/ }
+            this.fn_send(simple_message("User Address Add", "Invalid address: `" + addr + "`\n(Addresses that never received a single coin might be considered as invalid)"));
+        }
+    }
+    my_address_del(addrs) {
+        create_no_exists(users_addr_folder);
+        for (let addr of addrs) {
+            if (!fs.existsSync(users_addr_folder + "/" + this.msg.author.id + ".txt")) {
+                this.fn_send(simple_message("User Address Delete", "There aren't addresses assigned to <@" + this.msg.author.id + ">"));
                 return;
             }
+            let addrs_list = fs.readFileSync(users_addr_folder + "/" + this.msg.author.id + ".txt", "utf8").split(/\r?\n/).filter(Boolean);
+            let index = addrs_list.indexOf(addr);
+            if (index !== -1) {
+                addrs_list.splice(index, 1);
+                if (addrs_list.length)
+                    fs.writeFileSync(users_addr_folder + "/" + this.msg.author.id + ".txt", addrs_list.join("\n"));
+                else
+                    fs.unlinkSync(users_addr_folder + "/" + this.msg.author.id + ".txt");
+                this.fn_send(simple_message("User Address Delete", "Address `" + addr + "` deleted from <@" + this.msg.author.id + "> assigned addresses"));
+            }
+            else {
+                this.fn_send(simple_message("User Address Delete", "Address `" + addr + "` isn't assgined to <@" + this.msg.author.id + ">\nUse `" + conf.prefix + "my-address-list` to get your assigned addresses"));
+            }
         }
-        catch (e) { /**/ }
-        this.fn_send(simple_message("User Address Add", "Invalid address: `" + addr + "`\n(Addresses that never received a single coin might be considered as invalid)"));
-    }
-    my_address_del(addr) {
-        create_no_exists(users_addr_folder);
-        if (!fs.existsSync(users_addr_folder + "/" + this.msg.author.id + ".txt")) {
-            this.fn_send(simple_message("User Address Delete", "There aren't addresses assigned to <@" + this.msg.author.id + ">"));
-            return;
-        }
-
-        let addrs_list = fs.readFileSync(users_addr_folder + "/" + this.msg.author.id + ".txt", "utf8").split(/\r?\n/).filter(Boolean);
-        let index = addrs_list.indexOf(addr);
-        if (index === -1) {
-            this.fn_send(simple_message("User Address Delete", "Address `" + addr + "` isn't assgined to <@" + this.msg.author.id + ">\nUse `" + conf.prefix + "my-address-list` to get your assigned addresses"));
-            return;
-        }
-
-        addrs_list.splice(index, 1);
-        if (addrs_list.length)
-            fs.writeFileSync(users_addr_folder + "/" + this.msg.author.id + ".txt", addrs_list.join("\n"));
-        else
-            fs.unlinkSync(users_addr_folder + "/" + this.msg.author.id + ".txt");
-        this.fn_send(simple_message("User Address Delete", "Address `" + addr + "` deleted from <@" + this.msg.author.id + "> assigned addresses"));
     }
     my_address_list() {
         create_no_exists(users_addr_folder);
@@ -906,46 +914,50 @@ class BotCommand {
         });
     }
 
-    my_masternode_add(addr) {
+    my_masternode_add(addrs) {
         create_no_exists(users_mn_folder);
-        try {
-            let json = JSON.parse(bash_cmd(conf.requests.mnstat + addr));
-            if (Array.isArray(json))
-                json = json[0];
-            if (json["status"] !== undefined && json["addr"] === addr) {
-                let addrs_list = fs.existsSync(users_mn_folder + "/" + this.msg.author.id + ".txt") ? fs.readFileSync(users_mn_folder + "/" + this.msg.author.id + ".txt", "utf8").split(/\r?\n/) : [];
-                if (addrs_list.indexOf(addr) === -1) {
-                    fs.writeFileSync(users_mn_folder + "/" + this.msg.author.id + ".txt", addrs_list.concat([addr]).join("\n"));
-                    this.fn_send(simple_message("User Masternode Add", "Masternode address `" + addr + "` assigned to <@" + this.msg.author.id + ">\nStatus: " + json["status"]));
+        for (let addr of addrs) {
+            try {
+                let json = JSON.parse(bash_cmd(conf.requests.mnstat + addr));
+                if (Array.isArray(json))
+                    json = json[0];
+                if (json["status"] !== undefined && json["addr"] === addr) {
+                    let addrs_list = fs.existsSync(users_mn_folder + "/" + this.msg.author.id + ".txt") ? fs.readFileSync(users_mn_folder + "/" + this.msg.author.id + ".txt", "utf8").split(/\r?\n/) : [];
+                    if (addrs_list.indexOf(addr) === -1) {
+                        fs.writeFileSync(users_mn_folder + "/" + this.msg.author.id + ".txt", addrs_list.concat([addr]).join("\n"));
+                        this.fn_send(simple_message("User Masternode Add", "Masternode address `" + addr + "` assigned to <@" + this.msg.author.id + ">\nStatus: " + json["status"]));
+                    }
+                    else {
+                        this.fn_send(simple_message("User Masternode Add", "Masternode address `" + addr + "` already has been assigned to <@" + this.msg.author.id + ">"));
+                    }
                 }
-                else
-                    this.fn_send(simple_message("User Masternode Add", "Masternode address `" + addr + "` already has been assigned to <@" + this.msg.author.id + ">"));
-                return;
+            }
+            catch (e) {
+                this.fn_send(simple_message("User Masternode Add", "Invalid masternode address: `" + addr + "`\n(Can't be found in the masternode list)"));
             }
         }
-        catch (e) { /**/ }
-        this.fn_send(simple_message("User Masternode Add", "Invalid masternode address: `" + addr + "`\n(Can't be found in the masternode list)"));
     }
-    my_masternode_del(addr) {
+    my_masternode_del(addrs) {
         create_no_exists(users_mn_folder);
-        if (!fs.existsSync(users_mn_folder + "/" + this.msg.author.id + ".txt")) {
-            this.fn_send(simple_message("User Masternode Delete", "There aren't masternode addresses assigned to <@" + this.msg.author.id + ">"));
-            return;
+        for (let addr of addrs) {
+            if (!fs.existsSync(users_mn_folder + "/" + this.msg.author.id + ".txt")) {
+                this.fn_send(simple_message("User Masternode Delete", "There aren't masternode addresses assigned to <@" + this.msg.author.id + ">"));
+                return;
+            }
+            let addrs_list = fs.readFileSync(users_mn_folder + "/" + this.msg.author.id + ".txt", "utf8").split(/\r?\n/).filter(Boolean);
+            let index = addrs_list.indexOf(addr);
+            if (index !== -1) {
+                addrs_list.splice(index, 1);
+                if (addrs_list.length)
+                    fs.writeFileSync(users_mn_folder + "/" + this.msg.author.id + ".txt", addrs_list.join("\n"));
+                else
+                    fs.unlinkSync(users_mn_folder + "/" + this.msg.author.id + ".txt");
+                this.fn_send(simple_message("User Masternode Delete", "Masternode address `" + addr + "` deleted from <@" + this.msg.author.id + "> assigned addresses"));
+            }
+            else {
+                this.fn_send(simple_message("User Masternode Delete", "Masternode address `" + addr + "` isn't assgined to <@" + this.msg.author.id + ">\nUse `" + conf.prefix + "my-masternode-list` to get your assigned masternode addresses"));
+            }
         }
-
-        let addrs_list = fs.readFileSync(users_mn_folder + "/" + this.msg.author.id + ".txt", "utf8").split(/\r?\n/).filter(Boolean);
-        let index = addrs_list.indexOf(addr);
-        if (index === -1) {
-            this.fn_send(simple_message("User Masternode Delete", "Masternode address `" + addr + "` isn't assgined to <@" + this.msg.author.id + ">\nUse `" + conf.prefix + "my-masternode-list` to get your assigned masternode addresses"));
-            return;
-        }
-
-        addrs_list.splice(index, 1);
-        if (addrs_list.length)
-            fs.writeFileSync(users_mn_folder + "/" + this.msg.author.id + ".txt", addrs_list.join("\n"));
-        else
-            fs.unlinkSync(users_mn_folder + "/" + this.msg.author.id + ".txt");
-        this.fn_send(simple_message("User Masternode Delete", "Masternode address `" + addr + "` deleted from <@" + this.msg.author.id + "> assigned addresses"));
     }
     my_masternode_list() {
         create_no_exists(users_mn_folder);
@@ -1276,13 +1288,13 @@ client.on("message", msg => {
         // User addresses:
         
         case "my-address-add": {
-            if (enabled_cmd("my-address-add", conf.useraddrs || valid_request("balance")) && !error_noparam(1, "You need to provide an address"))
-                cmd.my_address_add(args[1]);
+            if (enabled_cmd("my-address-add", conf.useraddrs || valid_request("balance")) && !error_noparam(1, "You need to provide at least one address"))
+                cmd.my_address_add(args.slice(1));
             break;
         }
         case "my-address-del": {
-            if (enabled_cmd("my-address-del", conf.useraddrs || valid_request("balance")) && !error_noparam(1, "You need to provide an address"))
-                cmd.my_address_del(args[1]);
+            if (enabled_cmd("my-address-del", conf.useraddrs || valid_request("balance")) && !error_noparam(1, "You need to provide at least one address"))
+                cmd.my_address_del(args.slice(1));
             break;
         }
         case "my-address-list": {
@@ -1299,13 +1311,13 @@ client.on("message", msg => {
         // User masternodes:
 
         case "my-masternode-add": {
-            if (enabled_cmd("my-masternode-add", conf.useraddrs || valid_request("mnstat") || valid_request("blockcount") || valid_request("mncount")) && !error_noparam(1, "You need to provide an address"))
-                cmd.my_masternode_add(args[1]);
+            if (enabled_cmd("my-masternode-add", conf.useraddrs || valid_request("mnstat") || valid_request("blockcount") || valid_request("mncount")) && !error_noparam(1, "You need to provide at least one address"))
+                cmd.my_masternode_add(args.slice(1));
             break;
         }
         case "my-masternode-del": {
-            if (enabled_cmd("my-masternode-del", conf.useraddrs || valid_request("mnstat") || valid_request("blockcount") || valid_request("mncount")) && !error_noparam(1, "You need to provide an address"))
-                cmd.my_masternode_del(args[1]);
+            if (enabled_cmd("my-masternode-del", conf.useraddrs || valid_request("mnstat") || valid_request("blockcount") || valid_request("mncount")) && !error_noparam(1, "You need to provide at least one address"))
+                cmd.my_masternode_del(args.slice(1));
             break;
         }
         case "my-masternode-list": {
