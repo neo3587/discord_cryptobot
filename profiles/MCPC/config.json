@@ -3,7 +3,8 @@
 
   },
   "ticker": [
-    "Crex24"
+    "Crex24",
+    "Zolex"
   ],
   "color": {
     "prices": 3447003,
@@ -86,7 +87,7 @@
       "pos": 6.82
     },
     {
-      "block": 128000,
+      "block": 129000,
       "coll": 1000,
       "mn": 16.68,
       "pos": 7.32
