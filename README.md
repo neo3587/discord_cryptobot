@@ -118,7 +118,8 @@ You'll have to modify the "config.json" file to make it fit with your cryptocurr
     "blockindex": "mywalletname-cli getblockhash ",    // <b>!!!</b> trailing space added on purpose or won't work, remove it only if using a url, same for "balance" and "blockhash".
     "blockhash":  "mywalletname-cli getblock ",
     "hashrate": "curl -s http://mycoinexplorer.com/api/getnetworkhashps",
-    "mnstat": "mywalletname-cli masternode list " // some wallets may require a custom script instead
+    "mnstat": "mywalletname-cli masternode list ", // some wallets may require a custom script instead
+    "addnodes": mywalletname-cli getpeerinfo"
 }
 Important note if you customize the requests: 
     - "blockcount" must return a string convertible into a number.
@@ -129,6 +130,7 @@ Important note if you customize the requests:
     - "blockhash": expects to receive a string (the hash) and must return a json type string with the attributes "height": (block number), "hash": (block hash), "confirmations": (number), "size": (size of the block), "previousblockhash": (last block hash), "nextblockhash": (next block hash) and "tx": [ (list of the block transactions) ].
     - "hashrate": expects to receive a string convertible into a number.
     - "mnstat": expects a json with "addr" and "status" attributes.
+    - "addnodes": expects a json array of objects with a "addr" attribute.
 </pre>
 - **statorder**: Order of the <b>!stats</b> values, you can even remove some of them if you don't want them to be displayed, adding a empty string **""** will put a blank space as if it were a offset. Available values: 
 ```
@@ -163,7 +165,7 @@ Important note if you customize the requests:
 - **blocktime:** Block time in seconds (used for some calculations).
 - **token:** The token of your bot.
 
-NOTE: The token on config.json is just an example, not the real one (for obvious reasons), use yours to work with your discord server.
+*NOTE: The token on config.json is just an example, not the real one (for obvious reasons), use yours to work with your discord server.*
 
 # <a name = "currently-supported-exchanges"></a> Currently supported exchanges
 
@@ -185,10 +187,12 @@ NOTE: The token on config.json is just an example, not the real one (for obvious
 - Coinex (24h BTC volume not 100% accurate)
 - P2PB2B
 - CoinsBit
+- Zolex
+- TradeSatoshi
+- CoinBene (24h change not supported)
 
-NOTE: The non-supported or not 100% accurate features are due to the exchange API.
-
-NOTE 2: Feel free to ask for adding support to a concrete exchange.
+*NOTE: The non-supported or not 100% accurate features are due to the exchange API.*  
+*NOTE 2: Feel free to ask for adding support to a concrete exchange.*
 
 # <a name = "image-examples"></a> Image examples
 
