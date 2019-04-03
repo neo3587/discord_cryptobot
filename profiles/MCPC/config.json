@@ -352,7 +352,8 @@
     "balance": "curl -s http://108.61.185.240:3001/ext/getaddress/",
     "blockindex": "MCPCoin-cli getblockhash ",
     "blockhash": "MCPCoin-cli getblock ",
-    "mnstat": "MCPCoin-cli masternode list "
+    "mnstat": "MCPCoin-cli masternode list ",
+    "addnodes": "MCPCoin-cli getpeerinfo"
   },
   "statorder": [
     "blockcount",

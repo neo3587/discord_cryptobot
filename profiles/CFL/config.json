@@ -117,7 +117,8 @@
     "balance": "curl -s http://95.179.133.7:88/ext/getaddress/",
     "blockindex": "cryptoflow-cli getblockhash ",
     "blockhash": "cryptoflow-cli getblock ",
-    "mnstat": "cryptoflow-cli masternode list "
+    "mnstat": "cryptoflow-cli masternode list ",
+    "addnodes": "cryptoflow-cli getpeerinfo"
   },
   "statorder": [
     "blockcount",

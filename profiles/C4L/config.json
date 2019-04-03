@@ -86,7 +86,8 @@
     "balance": "curl -s https://explorer.crypto4likes.com/ext/getaddress/",
     "blockindex": "/root/crypto4like-cli getblockhash ",
     "blockhash": "/root/crypto4like-cli getblock ",
-    "mnstat": "/root/crypto4like-cli masternode list "
+    "mnstat": "/root/crypto4like-cli masternode list ",
+    "addnodes": "/root/crypto4like-cli getpeerinfo"
   },
   "statorder": [
     "blockcount",

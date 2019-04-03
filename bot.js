@@ -3,13 +3,10 @@
     Author: neo3587
     Source: https://github.com/neo3587/discord_cryptobot
     TODO:
-        - tradesatoshi ticker => https://tradesatoshi.com/api/public/getmarketsummary?market=LTC_BTC
-        - coinbene ticker => https://github.com/Coinbene/API-Documents/wiki/1.1.0-Get-Ticker-%5BMarket%5D
-        - !addnodes ?
         - !my-masternode-list -> click => info... is it even possible?, if not => field message (status, protocol, last seen, last payed, active time)
-        - !my-address-del all, !my-masternode-del all
         - share api calls on monitor to decrease the network usage
         - check if bulkdelete fails cause 2 weeks old messages => delete all them 1 by 1
+        - tiered MNs support
 */
 
 const Discord = require("discord.js");
@@ -18,7 +15,7 @@ const fs = require("fs");
 const path = require("path");
 const { spawn, spawnSync } = require("child_process");
 
-const config_json_file = path.dirname(process.argv[1]) + "/config.json"; 
+const config_json_file = path.dirname(process.argv[1]) + "/config.json";
 const users_addr_folder = path.dirname(process.argv[1]) + "/.db_users_addr";
 const users_mn_folder = path.dirname(process.argv[1]) + "/.db_users_mn";
 
@@ -26,12 +23,12 @@ const users_mn_folder = path.dirname(process.argv[1]) + "/.db_users_mn";
 /** @typedef {Object} Configuration
   * @property {string[]} special_ticker -
   * @property {Array<string|string[]>} ticker -
-  * @property {number[]} color -
+  * @property {{prices:number, coininfo:number, explorer:number, other:number, error:number}} color -
   * @property {string[]} devs -
-  * @property {{block: number, coll?: number, mn?: number, pos?: number, pow?: number}[]} stages -
-  * @property {{blockcount: string, mncount: string, supply: string, balance: string, blockindex: string, blockhash: string, mnstat: string}} requests -
+  * @property {{block:number, coll?: number, mn?:number, pos?:number, pow?:number}[]} stages -
+  * @property {{blockcount:string, mncount:string, supply:string, balance:string, blockindex:string, blockhash:string, mnstat:string, addnodes:string}} requests -
   * @property {string[]} startorder -
-  * @property {{enabled: true, channel: string, interval: 60}} monitor -
+  * @property {{enabled:true, channel:string, interval:number}} monitor -
   * @property {boolean} hidenotsupported -
   * @property {boolean} useraddrs -
   * @property {boolean} usermns -
@@ -79,7 +76,7 @@ function start_monitor() {
         const channel = client.channels.get(conf.monitor.channel);
         let embeds = [];
         let cmd = new BotCommand(undefined, txt => embeds.push(txt));
-        
+
         const refresh_monitor = async () => {
             embeds = [];
             await cmd.price();
@@ -150,19 +147,19 @@ function get_ticker(ticker) {
             }
         };
 
-        let exdata, tmp, coin_up, coin_lw, exchange;
+        let exdata = new ExchangeData(), tmp, coin_up, coin_lw, exchange;
 
         if (Array.isArray(ticker)) {
             coin_up = [ticker[1].toUpperCase(), ticker[2].toUpperCase()];
             coin_lw = [ticker[1].toLowerCase(), ticker[2].toLowerCase()];
             exchange = ticker[0];
-            exdata = new ExchangeData(`${exchange} (${coin_up[0] !== conf.coin.toUpperCase() ? coin_up[0] + "-" : ""}${coin_up[1]})`);
+            exdata.name = `${exchange} (${coin_up[0] !== conf.coin.toUpperCase() ? coin_up[0] + "-" : ""}${coin_up[1]})`;
         }
         else {
             coin_up = [conf.coin.toUpperCase(), "BTC"];
             coin_lw = [conf.coin.toLowerCase(), "btc"];
             exchange = ticker;
-            exdata = new ExchangeData(exchange);
+            exdata.name = exchange;
         }
 
         switch (exchange.toLowerCase()) {
@@ -291,7 +288,7 @@ function get_ticker(ticker) {
                         exdata.fillj(res, "last", "", "buy", "sell", "chg");
                         exdata.volume = ternary_try(() => {
                             let vol = 0.00;
-                            for (let x of JSON.parse(ohlc).filter(x => x[5] > 0)) 
+                            for (let x of JSON.parse(ohlc).filter(x => x[5] > 0))
                                 vol += x.slice(1, 5).reduce((pv, cv) => pv + cv) / 4 * x[5];
                             return vol.toFixed(8);
                         }, "Error");
@@ -301,11 +298,21 @@ function get_ticker(ticker) {
                 });
                 break;
             }
+            case "tradesatoshi": {
+                exdata.link = `https://tradesatoshi.com/Exchange/?market=${coin_up[0]}_${coin_up[1]}`;
+                js_request(`https://tradesatoshi.com/api/public/getmarketsummary?market=${coin_up[0]}_${coin_up[1]}`, res => exdata.fillj(res["result"], "last", "baseVolume", "bid", "ask", "change"));
+                break;
+            }
+            case "coinbene": {
+                exdata.link = `https://www.coinbene.com/exchange.html#/exchange?pairId=${coin_up[0]}${coin_up[1]}`;
+                js_request(`https://api.coinbene.com/v1/market/ticker?symbol=${coin_lw[0]}${coin_lw[1]}`, res => exdata.fillj(res["ticker"][0], "last", "24hrAmt", "bid", "ask", "")); // not supported change
+                break;
+            }
             default: {
                 resolve(exdata);
             }
         }
-        
+
     });
 }
 function price_avg() {
@@ -436,7 +443,7 @@ function simple_message(title, descr, color = conf.color.explorer) {
 
 class BotCommand {
 
-    /** @param {Discord.Message} msg - 
+    /** @param {Discord.Message} msg -
       * @param {Function} fn_send - */
     constructor(msg, fn_send = txt => this.msg.channel.send(txt)) {
         this.msg = msg;
@@ -486,7 +493,7 @@ class BotCommand {
             new Promise((resolve, reject) => resolve(request_mncount())),
             new Promise((resolve, reject) => resolve(bash_cmd(conf.requests.supply)))
         ]).then(([blockcount, mncount, supply]) => {
-            
+
             let valid = {
                 blockcount: !isNaN(blockcount) && blockcount.trim() !== "",
                 mncount: !isNaN(mncount) && mncount.trim() !== "",
@@ -513,22 +520,22 @@ class BotCommand {
                             embed.addField("MN Count", mncount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ","), true);
                         break;
                     }
-                    case "supply": { 
+                    case "supply": {
                         if (valid.supply)
                             embed.addField("Supply", parseFloat(supply).toFixed(4).replace(/(\d)(?=(?:\d{3})+(?:\.|$))|(\.\d{4}?)\d*$/g, (m, s1, s2) => s2 || s1 + ',') + " " + conf.coin, true);
                         break;
                     }
-                    case "collateral": { 
+                    case "collateral": {
                         if (valid.blockcount)
                             embed.addField("Collateral", stage.coll.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",") + " " + conf.coin, true);
                         break;
                     }
-                    case "mnreward": { 
+                    case "mnreward": {
                         if (valid.blockcount)
                             embed.addField("MN Reward", stage.mn + " " + conf.coin, true);
                         break;
                     }
-                    case "powreward": { 
+                    case "powreward": {
                         if (stage.pow !== undefined && valid.blockcount)
                             embed.addField("POW Reward", stage.pow + " " + conf.coin, true);
                         break;
@@ -538,7 +545,7 @@ class BotCommand {
                             embed.addField("POS Reward", stage.pos + " " + conf.coin, true);
                         break;
                     }
-                    case "locked": { 
+                    case "locked": {
                         if (valid.blockcount && valid.mncount && valid.supply)
                             embed.addField("Locked", (mncount * stage.coll).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",") + " " + conf.coin + " (" + (mncount * stage.coll / supply * 100).toFixed(2) + "%)", true);
                         break;
@@ -554,7 +561,7 @@ class BotCommand {
                             embed.addField("1st MN Reward", parseInt(x3mncount / (86400 / conf.blocktime)) + "d " + parseInt(x3mncount / (3600 / conf.blocktime) % 24) + "h " + parseInt(x3mncount / (60 / conf.blocktime) % 60) + "m", true);
                         break;
                     }
-                    case "nextstage": { 
+                    case "nextstage": {
                         if (valid.blockcount)
                             embed.addField("Next Stage", parseInt((conf.stages[stg_index].block - blockcount) / (86400 / conf.blocktime)) + "d " + parseInt((conf.stages[stg_index].block - blockcount) / (3600 / conf.blocktime) % 24) + "h " + parseInt((conf.stages[stg_index].block - blockcount) / (60 / conf.blocktime) % 60) + "m", true);
                         break;
@@ -565,7 +572,7 @@ class BotCommand {
                     }
                 }
             }
-            
+
             if (valid_request("blockcount") && !valid.blockcount)
                 embed.description = (embed.description === undefined ? "" : embed.description) + "There seems to be a problem with the `blockcount` request\n";
             if (valid_request("mncount") && !valid.mncount)
@@ -607,7 +614,7 @@ class BotCommand {
 
             if (embed.fields.length > 3 && embed.fields.length % 3 === 2) // fix bad placing if a row have 2 tickers
                 embed.addBlankField(true);
-            
+
             this.fn_send(embed);
 
         });
@@ -716,14 +723,11 @@ class BotCommand {
                     });
                 }
                 else {
-                    this.fn_send({
-                        embed: {
-                            title: conf.coin + " Mining (" + hr + " " + letter + "H/s)",
-                            color: conf.color.coininfo,
-                            description: (valid.blockcount ? "" : "There seems to be a problem with the `blockcount` request\n") + (valid.hashrate ? "" : "There seems to be a problem with the `hashrate` request"),
-                            timestamp: new Date()
-                        }
-                    });
+                    this.fn_send(simple_message(conf.coin + " Mining (" + hr + " " + letter + "H/s)",
+                        (valid.blockcount ? "" : "There seems to be a problem with the `blockcount` request\n") +
+                        (valid.hashrate ? "" : "There seems to be a problem with the `hashrate` request"),
+                        conf.color.coininfo,
+                    ));
                 }
             });
         }
@@ -736,6 +740,18 @@ class BotCommand {
                 }
             });
         }
+    }
+    addnodes() {
+        new Promise((resolve, reject) => resolve(bash_cmd(conf.requests.addnodes))).then(info => {
+            try {
+                let str = "";
+                JSON.parse(info).slice(0, 16).forEach(x => str += `addnode=${x.addr}\n`);
+                this.fn_send(simple_message(conf.coin + " addnodes", "```ini\n" + str + "\n```", 5198940));
+            }
+            catch (e) {
+                this.msg.send(simple_message("Addnodes", "There seems to be a problem with the `addnodes` request", conf.color.coininfo));
+            }
+        });
     }
 
     balance(addr) {
@@ -1060,7 +1076,8 @@ class BotCommand {
                             " - **" + conf.prefix + "stats** : get the current stats of the " + conf.coin + " blockchain\n" +
                             " - **" + conf.prefix + "stages** : get the info of the upcoming reward structures\n" +
                             " - **" + conf.prefix + "earnings [amount of MNs]** : get the expected earnings per masternode, aditionally you can put the amount of MNs\n" +
-                            " - **" + conf.prefix + "mining <hashrate> [K/M/G/T]** : get the expected earnings with the given hashrate, aditionally you can put the hashrate multiplier (K = KHash/s, M = MHash/s, ...)"
+                            " - **" + conf.prefix + "mining <hashrate> [K/M/G/T]** : get the expected earnings with the given hashrate, aditionally you can put the hashrate multiplier (K = KHash/s, M = MHash/s, ...)\n" +
+                            " - **" + conf.prefix + "addnodes** : get a addnodes list for the chain sync"
                     },
                     {
                         name: "Explorer",
@@ -1191,11 +1208,11 @@ process.on("unhandledRejection", err => {
     process.exit();
 });
 client.on("message", msg => {
-    
+
     if (conf.channel.length && !conf.channel.includes(msg.channel.id) || !msg.content.startsWith(conf.prefix) || msg.author.bot)
         return;
 
-    let args = msg.content.slice(conf.prefix.length).split(" ").filter(x => x.length);
+    let args = msg.content.slice(conf.prefix.length).split(/[ \r\n]/).filter(x => x.length);
     let cmd = new BotCommand(msg);
 
     const error_noparam = (n, descr) => {
@@ -1237,7 +1254,7 @@ client.on("message", msg => {
 
     switch (args[0]) {
 
-        // Exchanges: 
+        // Exchanges:
 
         case "price": {
             cmd.price();
@@ -1266,6 +1283,11 @@ client.on("message", msg => {
                 cmd.mining(args[1], args[2]);
             break;
         }
+        case "addnodes": {
+            if (enabled_cmd("addnodes", valid_request("addnodes")))
+                cmd.addnodes();
+            break;
+        }
 
         // Explorer:
 
@@ -1286,7 +1308,7 @@ client.on("message", msg => {
         }
 
         // User addresses:
-        
+
         case "my-address-add": {
             if (enabled_cmd("my-address-add", conf.useraddrs || valid_request("balance")) && !error_noparam(1, "You need to provide at least one address"))
                 cmd.my_address_add(args.slice(1));
@@ -1378,6 +1400,7 @@ client.on("message", msg => {
     }
 
 });
+
 
 if (process.argv.length >= 3 && process.argv[2] === "background")
     configure_systemd("discord_cryptobot");

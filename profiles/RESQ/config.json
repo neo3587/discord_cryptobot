@@ -94,7 +94,8 @@
     "blockindex": "resq-cli getblockhash ",
     "blockhash": "resq-cli getblock ",
     "hashrate": "resq-cli getnetworkhashps",
-    "mnstat": "bash resq_mnstat.sh "
+    "mnstat": "bash resq_mnstat.sh ",
+    "addnodes": "resq-cli getpeerinfo"
   },
   "statorder": [
     "blockcount",

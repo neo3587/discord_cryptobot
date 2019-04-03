@@ -40,7 +40,8 @@
     "balance": "curl -s http://155.138.162.119/ext/getaddress/",
     "blockindex": "zolexcoin-cli getblockhash ",
     "blockhash": "zolexcoin-cli getblock ",
-    "mnstat": "zolexcoin-cli masternode list "
+    "mnstat": "zolexcoin-cli masternode list ",
+    "addnodes": "zolexcoin-cli getpeerinfo"
   },
   "statorder": [
     "blockcount",

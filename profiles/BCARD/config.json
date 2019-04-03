@@ -69,7 +69,8 @@
     "balance": "curl -s http://127.0.0.1:3001/ext/getaddress/",
     "blockindex": "CARDbuyers-cli getblockhash ",
     "blockhash": "CARDbuyers-cli getblock ",
-    "mnstat": "CARDbuyers-cli masternode list "
+    "mnstat": "CARDbuyers-cli masternode list ",
+    "addnodes": "CARDbuyers-cli getpeerinfo"
   },
   "statorder": [
     "blockcount",
