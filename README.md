@@ -175,22 +175,27 @@ Important note if you customize the requests:
 - Graviex
 - Escodex
 - Cryptopia
-- Stex (24h BTC volume not 100% accurate)
-- C-CEX (24h change not supported)
-- HitBTC (24h change not supported)
-- YoBit (24h change not supported)
-- Bittrex (24h change not 100% accurate)
+- Stex ¹
+- C-CEX ⁴
+- HitBTC ⁴
+- YoBit ⁴
+- Bittrex ³
 - SouthXchange
 - Exrates
 - Binance
-- Bitfinex (24h BTC volume not 100% accurate)
-- Coinex (24h BTC volume not 100% accurate)
+- Bitfinex ¹
+- Coinex ¹
 - P2PB2B
 - CoinsBit
 - Zolex
 - TradeSatoshi
-- CoinBene (24h change not supported)
+- CoinBene ³  
 
+*1. BTC volume not 100% accurate*  
+*2. BTC volume not supported*  
+*3. 24h change not 100% accurate*  
+*4. 24h change not supported*  
+*5. Requires the bitshares package (*`npm install bitsharesjs-ws`*)*  
 *NOTE: The non-supported or not 100% accurate features are due to the exchange API.*  
 *NOTE 2: Feel free to ask for adding support to a concrete exchange.*
 
