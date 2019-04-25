@@ -90,7 +90,7 @@ You'll have to modify the "config.json" file to make it fit with your cryptocurr
     {
       "block": 18000, // from block 0 to 18000
       "coll": 1000, // collateral = 1000 coins
-      "mn": 9.50, // MN reward = 10.50 coins
+      "mn": 9.50, // MN reward = 9.50 coins
       "pow": 0.50 // POW reward = 0.50 coins
     },
     {
@@ -143,6 +143,7 @@ Important note if you customize the requests:
     "powreward",   // requires requests.blockcount
     "posreward",   // requires requests.blockcount
     "locked",      // requires requests.blockcount, requests.mncount and requests.supply
+    "1streward",   // requires requests.mncount
     "avgmnreward", // requires requests.mncount
     "nextstage"    // requires requests.blockcount
   ]
