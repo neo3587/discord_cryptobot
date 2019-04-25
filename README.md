@@ -119,20 +119,20 @@ You'll have to modify the "config.json" file to make it fit with your cryptocurr
     "balance":    "curl -s http://mycoinexplorer.com/ext/getaddress/",    
     "blockindex": "mywalletname-cli getblockhash ",    // <b>!!!</b> trailing space added on purpose or won't work, remove it only if using a url, same for "balance" and "blockhash".
     "blockhash":  "mywalletname-cli getblock ",
-    "hashrate": "curl -s http://mycoinexplorer.com/api/getnetworkhashps",
-    "mnstat": "mywalletname-cli masternode list ", // some wallets may require a custom script instead
-    "addnodes": mywalletname-cli getpeerinfo"
+    "hashrate":   "curl -s http://mycoinexplorer.com/api/getnetworkhashps",
+    "mnstat":     "mywalletname-cli masternode list ", // some wallets may require a custom script instead
+    "addnodes":   "mywalletname-cli getpeerinfo"
 }
 Important note if you customize the requests: 
-    - "blockcount" must return a string convertible into a number.
-    - "mncount" must return a string convertible into a number.
-    - "supply" must return a string convertible into a number.
-    - "balance" expects to receive a string (the address) and must return a json type string with a number or string in three attributes called "sent", "received" and "balance".
+    - "blockcount"  must return a string convertible into a number.
+    - "mncount"     must return a string convertible into a number.
+    - "supply"      must return a string convertible into a number.
+    - "balance"     expects to receive a string (the address) and must return a json type string with a number or string in three attributes called "sent", "received" and "balance".
     - "blockindex": expects to receive a string convertible into a number and must return a string that indicates the block hash of the given block number.
-    - "blockhash": expects to receive a string (the hash) and must return a json type string with the attributes "height": (block number), "hash": (block hash), "confirmations": (number), "size": (size of the block), "previousblockhash": (last block hash), "nextblockhash": (next block hash) and "tx": [ (list of the block transactions) ].
-    - "hashrate": expects to receive a string convertible into a number.
-    - "mnstat": expects a json with "addr" and "status" attributes.
-    - "addnodes": expects a json array of objects with a "addr" attribute.
+    - "blockhash":  expects to receive a string (the hash) and must return a json type string with the attributes "height": (block number), "hash": (block hash), "confirmations": (number), "size": (size of the block), "previousblockhash": (last block hash), "nextblockhash": (next block hash) and "tx": [ (list of the block transactions) ].
+    - "hashrate":   expects to receive a string convertible into a number.
+    - "mnstat":     expects a json with "addr" and "status" attributes.
+    - "addnodes":   expects a json array of objects with a "addr" attribute.
 </pre>
 - **statorder**: Order of the <b>!stats</b> values, you can even remove some of them if you don't want them to be displayed, adding a empty string **""** will put a blank space as if it were a offset. Available values: 
 ```
