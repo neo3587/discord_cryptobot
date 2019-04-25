@@ -5,12 +5,13 @@
     TODO:
         - !my-masternode-list -> click => info... is it even possible?, if not => field message (status, protocol, last seen, last payed, active time)
         - share api calls on monitor to decrease the network usage
+        - modular monitor requests
         - check if bulkdelete fails cause 2 weeks old messages => delete all them 1 by 1
         - tiered MNs support
 */
 
 const Discord = require("discord.js");
-const XMLHttpRequest = require("xmlhttprequest").XMLHttpRequest;
+const { XMLHttpRequest } = require("xmlhttprequest");
 const fs = require("fs");
 const path = require("path");
 const { spawn, spawnSync } = require("child_process");
@@ -306,6 +307,52 @@ function get_ticker(ticker) {
             case "coinbene": {
                 exdata.link = `https://www.coinbene.com/exchange.html#/exchange?pairId=${coin_up[0]}${coin_up[1]}`;
                 js_request(`https://api.coinbene.com/v1/market/ticker?symbol=${coin_lw[0]}${coin_lw[1]}`, res => exdata.fillj(res["ticker"][0], "last", "24hrAmt", "bid", "ask", "")); // not supported change
+                break;
+            }
+            case "finexbox": {
+                exdata.link = `https://www.finexbox.com/market/pair/${coin_up[0]}-${coin_up[1]}.html`;
+                Promise.all([
+                    async_request(`https://xapi.finexbox.com/v1/ticker?market=${coin_lw[0]}_${coin_lw[1]}`).catch(() => { }),
+                    async_request(`https://xapi.finexbox.com/v1/orders?market=${coin_lw[0]}_${coin_lw[1]}&count=1`).catch(() => { })
+                ]).then(([res, ord]) => {
+                    try {
+                        res = JSON.parse(res)["result"];
+                        ord = JSON.parse(ord)["result"];
+                        exdata.fill(res.price, res.volume * res.average, ord.buy.length && ord.buy[0].price, ord.sell.length && ord.sell[0].price); // volume not 100% accurate, 24h change not supported
+                    }
+                    catch (e) { /**/ }
+                    resolve(exdata);
+                });
+                break;
+            }
+            case "hotdex": {
+                // npm install bitsharesjs-ws
+                exdata.link = `https://wallet.hotdex.eu/market/HOTDEX.${coin_up[0]}_HOTDEX.${coin_up[1]}`;
+                BsApis.instance("wss://bitshares.openledger.info/ws", true).init_promise.then(async () => {
+                    try {
+                        let ticker = await BsApis.instance().db_api().exec("get_ticker", [`HOTDEX.${coin_up[1]}`, `HOTDEX.${coin_up[0]}`]);
+                        exdata.fillj(ticker, "latest", "base_volume", "highest_bid", "lowest_ask", "percent_change");
+                    } catch (e) { /**/ }
+                    resolve(exdata);
+                }).catch(e => resolve(exdata));
+                break;
+            }
+            case "midex": {
+                exdata.link = `https://en.midex.com/trade/${coin_up[0]}_${coin_up[1]}`;
+                Promise.all([
+                    async_request(`https://robot.midex.com/v1/currency_pair/${coin_up[0]}_${coin_up[1]}/ticker`).catch(() => { }),
+                    async_request(`https://robot.midex.com/v1/currency_pair/${coin_up[0]}_${coin_up[1]}/trades`).catch(() => { })
+                ]).then(([res, ord]) => {
+                    try {
+                        res = JSON.parse(res);
+                        ord = JSON.parse(ord);
+                        let vol = 0.0;
+                        ord.forEach(x => vol += x.price * x.quantity);
+                        exdata.fill(ord.length ? ord[0].price : 0, vol, res.buy_price, res.sell_price, res.change24);
+                    }
+                    catch (e) { /**/ }
+                    resolve(exdata);
+                });
                 break;
             }
             default: {
@@ -1401,6 +1448,14 @@ client.on("message", msg => {
 
 });
 
+if (conf.ticker.some(x => ["hotdex"].includes((Array.isArray(x) ? x[0] : x).toLowerCase()))) {
+    try {
+        BsApis = require("bitsharesjs-ws").Apis;
+    } catch (e) {
+        console.log("ERROR: you need to type 'npm install bitsharesjs-ws' to use one or some of the exchanges in the config file");
+        return;
+    }
+}
 
 if (process.argv.length >= 3 && process.argv[2] === "background")
     configure_systemd("discord_cryptobot");
