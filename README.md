@@ -1,6 +1,6 @@
 # Discord CryptoBot
 
-A discord bot originally made for BCARD, and reworked to work with RESQ, it can be easily adapted for any other currency.
+A discord bot to display the price of a cryptocurrency in every listed exchange, blockchain stats, expected earnings, etc.
 
 # Index
 
@@ -41,32 +41,34 @@ node bot.js background
 
 # <a name = "bot-commands"></a> Bot commands
 
-- **!price:** Shows the last price, volume (in BTC), ask, bid and a link to the exchange for every exchange where the coin is listed.
+- **`!price:`** Shows the last price, volume (in BTC), ask, bid and a link to the exchange for every exchange where the coin is listed.
+  
+- **`!stats:`** Shows the block count, MN count, supply, collateral, MN reward, POS reward, Locked coins and agerage MN reward frecuency.
+- **`!stages:`** Shows the upcoming reward structure changes.
+- **`!earnings [amount_on_mns]`:** Shows the ROI (in percentage and days), the MN price, the daily/weekly/monthly/yearly earnings for your cryptocurrency and optionally you can input the amount of mns to calculate the earnings.
+- **`!mining <number> [K/M/G/T]`:** Shows the expected earnings with the given hashrate, optionally you can use K,M,G or T to indicate the multiplier, example: ```!mining 500``` => asks for 500 H/s, ```!mining 20 M``` => asks for 20 MH/s, etc.
+  
+- **`!balance <address>`:** Shows the sent, received and current balance of the given address.
+- **`!block-index <number>`:** Shows the block stats of the given block number.
+- **`!block-hash <hash>`:** Shows the block stats of the given block hash.
 
-- **!stats:** Shows the block count, MN count, supply, collateral, MN reward, POS reward, Locked coins and agerage MN reward frecuency.
-- **!stages:** Shows the upcoming reward structure changes.
-- **!earnings ```[amount_on_mns]```:** Shows the ROI (in percentage and days), the MN price, the daily/weekly/monthly/yearly earnings for your cryptocurrency and optionally you can input the amount of mns to calculate the earnings.
-- **!mining ```<number>``` ```[K/M/G/T]```:** Shows the expected earnings with the given hashrate, optionally you can use K,M,G or T to indicate the multiplier, example: ```!mining 500``` => asks for 500 H/s, ```!mining 20 M``` => asks for 20 MH/s, etc.
+- **`!my-address-add <address>`:** Adds the given address to the user assigned addresses list.
+- **`!my-address-del <address>`:** Removes the given address from the user assigned addresses list.
+- **`!my-address-list:`** Shows the user addresses list.
+- **`!my-balance:`** Shows the sent, received and current balance of user.
+  
+- **`!my-masternode-add <address>`:** Adds the given address to the user assigned masternode addresses list.
+- **`!my-masternode-del <address>`:** Removes the given address from the user assigned masternode addresses list.
+- **`!my-mastenode-list:`** Shows the user masternode addresses list and their status.
+- **`!my-earnings:`** Shows the user expected earnings.
+  
+- **`!help:`** Shows every available command.
+- **`!about:`** Shows the bot info.
+  
+- **`!conf-get:`** Receive a dm with the config file, requires devs permissions (see **Bot configuration**).
+- **`!conf-set:`** Receive a dm asking to drag and drop a update of the config file, requires devs permissions (see **Bot configuration**).
 
-- **!balance ```<address>```:** Shows the sent, received and current balance of the given address.
-- **!block-index ```<number>```:** Shows the block stats of the given block number.
-- **!block-hash ```<hash>```:** Shows the block stats of the given block hash.
-
-- **!my-address-add ```<address>```:** Adds the given address to the user assigned addresses list.
-- **!my-address-del ```<address>```:** Removes the given address from the user assigned addresses list.
-- **!my-address-list:** Shows the user addresses list.
-- **!my-balance:** Shows the sent, received and current balance of user.
-
-- **!my-masternode-add ```<address>```:** Adds the given address to the user assigned masternode addresses list.
-- **!my-masternode-del ```<address>```:** Removes the given address from the user assigned masternode addresses list.
-- **!my-mastenode-list:** Shows the user masternode addresses list and their status.
-- **!my-earnings:** Shows the user expected earnings.
-
-- **!help:** Shows every available command.
-- **!about:** Shows the bot info.
-
-- **!conf-get:** Receive a dm with the config file, requires devs permissions (see **Bot configuration**).
-- **!conf-set:** Receive a dm asking to drag and drop a update of the config file, requires devs permissions (see **Bot configuration**).
+*Note:* `<parameter>` *means required,* `[parameter]` *means optional*
 
 # <a name ="bot-configuration"></a> Bot configuration
 
@@ -190,7 +192,10 @@ Important note if you customize the requests:
 - CoinsBit
 - Zolex
 - TradeSatoshi
-- CoinBene ³  
+- CoinBene ³
+- Finexbox ¹⁴
+- Hotdex ⁵
+- Midex
 
 *1. BTC volume not 100% accurate*  
 *2. BTC volume not supported*  
