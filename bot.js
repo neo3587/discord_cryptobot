@@ -340,8 +340,8 @@ function get_ticker(ticker) {
             case "midex": {
                 exdata.link = `https://en.midex.com/trade/${coin_up[0]}_${coin_up[1]}`;
                 Promise.all([
-                    async_request(`https://robot.midex.com/v1/currency_pair/${coin_up[0]}_${coin_up[1]}/ticker`).catch(() => { }),
-                    async_request(`https://robot.midex.com/v1/currency_pair/${coin_up[0]}_${coin_up[1]}/trades`).catch(() => { })
+                    async_request(`https://robot.midex.com/v1/currency_pair/${coin_lw[0]}${coin_lw[1]}/ticker`).catch(() => { }),
+                    async_request(`https://robot.midex.com/v1/currency_pair/${coin_lw[0]}${coin_lw[1]}/trades`).catch(() => { })
                 ]).then(([res, ord]) => {
                     try {
                         res = JSON.parse(res);
