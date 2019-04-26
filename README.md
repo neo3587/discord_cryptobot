@@ -114,13 +114,13 @@ You'll have to modify the "config.json" file to make it fit with your cryptocurr
 <pre>
 "requests": {
     "blockcount": "mywalletname-cli getblockcount",
-    "mncount":    "mywalletname-cli masternode count | jq .enabled", // some wallets or urls return a json and others return a number, use jq (<a href= "https://stedolan.github.io/jq/">https://stedolan.github.io/jq/</a>) if it returns a json.
+    "mncount":    "mywalletname-cli masternode count,
     "supply":     "curl -s http://mycoinexplorer.com/ext/getmoneysupply", 
     "balance":    "curl -s http://mycoinexplorer.com/ext/getaddress/",    
-    "blockindex": "mywalletname-cli getblockhash ",    // <b>!!!</b> trailing space added on purpose or won't work, remove it only if using a url, same for "balance" and "blockhash".
+    "blockindex": "mywalletname-cli getblockhash ",     // <b>!!!</b> trailing space added on purpose or won't work, remove it only if using a url, same for "balance" and "blockhash".
     "blockhash":  "mywalletname-cli getblock ",
     "hashrate":   "curl -s http://mycoinexplorer.com/api/getnetworkhashps",
-    "mnstat":     "mywalletname-cli masternode list ", // some wallets may require a custom script instead
+    "mnstat":     "mywalletname-cli masternode list ",  // some wallets may require a custom script instead
     "addnodes":   "mywalletname-cli getpeerinfo"
 }
 Important note if you customize the requests: 
@@ -178,25 +178,26 @@ Important note if you customize the requests:
 - Graviex
 - Escodex
 - Cryptopia
-- Stex ¹
-- C-CEX ⁴
-- HitBTC ⁴
-- YoBit ⁴
-- Bittrex ³
+- Stex [¹](#currently-supported-exchanges-tags)
+- C-CEX [⁴](#currently-supported-exchanges-tags)
+- HitBTC [⁴](#currently-supported-exchanges-tags)
+- YoBit [⁴](#currently-supported-exchanges-tags)
+- Bittrex [³](#currently-supported-exchanges-tags)
 - SouthXchange
 - Exrates
 - Binance
-- Bitfinex ¹
-- Coinex ¹
+- Bitfinex [¹](#currently-supported-exchanges-tags)
+- Coinex [¹](#currently-supported-exchanges-tags)
 - P2PB2B
 - CoinsBit
 - Zolex
 - TradeSatoshi
-- CoinBene ³
-- Finexbox ¹⁴
-- Hotdex ⁵
+- CoinBene [³](#currently-supported-exchanges-tags)
+- Finexbox [¹⁴](#currently-supported-exchanges-tags)
+- Hotdex [⁵](#currently-supported-exchanges-tags)
 - Midex
 
+<a name = "currently-supported-exchanges-tags"></a>
 *1. BTC volume not 100% accurate*  
 *2. BTC volume not supported*  
 *3. 24h change not 100% accurate*  
@@ -204,6 +205,7 @@ Important note if you customize the requests:
 *5. Requires the bitshares package (*`npm install bitsharesjs-ws`*)*  
 *NOTE: The non-supported or not 100% accurate features are due to the exchange API.*  
 *NOTE 2: Feel free to ask for adding support to a concrete exchange.*
+
 
 # <a name = "image-examples"></a> Image examples
 
