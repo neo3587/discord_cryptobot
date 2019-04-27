@@ -6,7 +6,6 @@
         - !my-masternode-list -> click => info... is it even possible?, if not => field message (status, protocol, last seen, last payed, active time)
         - share api calls on monitor to decrease the network usage
         - modular monitor requests
-        - check if bulkdelete fails cause 2 weeks old messages => delete all them 1 by 1
         - tiered MNs support
 */
 
@@ -83,14 +82,35 @@ function start_monitor() {
             await cmd.price();
             await cmd.stats();
             await cmd.earnings();
-            channel.bulkDelete(50).then(async () => {
-                for (let emb of embeds)
-                    await channel.send(emb);
-            });
+
+            await channel.bulkDelete(50);
+            for (let emb of embeds)
+                await channel.send(emb);
         };
 
-        refresh_monitor();
-        channel.client.setInterval(() => refresh_monitor(), conf.monitor.interval * 1000);
+        refresh_monitor().then(() => channel.client.setInterval(() => refresh_monitor(), conf.monitor.interval * 1000)).catch(async e => {
+            switch (e.code) {
+                case 50001:
+                    console.log("\x1b[33mThe bot doesn't have permissions to READ MESSAGES from the monitor channel\x1b[0m");
+                    break;
+                case 50013:
+                    console.log("\x1b[33mThe bot doesn't have permissions to SEND and/or MANAGE MESSAGES from the monitor channel\x1b[0m");
+                    break;
+                case 50034:
+                    console.log("\x1b[33mSome messages of the monitor channel are >14 days old, it may take a while to delete them all\x1b[0m");
+                    let msgs = await channel.fetchMessages({ limit: 1 });
+                    while (msgs.size > 0) {
+                        await msgs.last().delete();
+                        msgs = await channel.fetchMessages({ limit: 1 });
+                    }
+                    start_monitor();
+                    break;
+                default:
+                    console.log("Uknown error with the monitor:");
+                    console.log(e);
+                    break;
+            }
+        });
     }
 }
 function configure_systemd(name) {
