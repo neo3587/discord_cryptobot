@@ -190,7 +190,6 @@ Important note if you customize the requests:
 - Coinex [¹](#currently-supported-exchanges-tags)
 - P2PB2B
 - CoinsBit
-- Zolex
 - TradeSatoshi
 - CoinBene [³](#currently-supported-exchanges-tags)
 - Finexbox [¹⁴](#currently-supported-exchanges-tags)
@@ -204,7 +203,7 @@ Important note if you customize the requests:
 *4. 24h change not supported*  
 *5. Requires the bitshares package (*`npm install bitsharesjs-ws`*)*  
 *NOTE: The non-supported or not 100% accurate features are due to the exchange API.*  
-*NOTE 2: Feel free to ask for adding support to a concrete exchange.*
+*NOTE 2: Feel free to ask for adding support to a specific exchange.*
 
 
 # <a name = "image-examples"></a> Image examples
