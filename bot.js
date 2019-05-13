@@ -4,9 +4,11 @@
     Source: https://github.com/neo3587/discord_cryptobot
     TODO:
         - !my-masternode-list -> click => info... is it even possible?, if not => field message (status, protocol, last seen, last payed, active time)
-        - share api calls on monitor to decrease the network usage
-        - modular monitor requests
+        - share api calls on monitor to decrease the network usage ?
+        - modular monitor requests ? 
         - tiered MNs support
+        - expand embed color options
+        - channel name stats
 */
 
 const Discord = require("discord.js");
@@ -196,12 +198,12 @@ function get_ticker(ticker) {
             }
             case "coinexchange": {
                 exdata.link = `https://www.coinexchange.io/market/${coin_up[0]}/${coin_up[1]}`;
-                js_request(`https://www.coinexchange.io/api/v1/getmarketsummary?market_id=` + conf.special_ticker.CoinExchange, res => exdata.fillj(res["result"], "LastPrice", "BTCVolume", "BidPrice", "AskPrice", "Change"));
+                js_request(`https://www.coinexchange.io/api/v1/getmarketsummary?market_id=` + conf.special_ticker.CoinExchange, res => exdata.fillj(res.result, "LastPrice", "BTCVolume", "BidPrice", "AskPrice", "Change"));
                 break;
             }
             case "graviex": {
                 exdata.link = `https://graviex.net/markets/${coin_lw[0]}${coin_lw[1]}`;
-                js_request(`https://graviex.net:443/api/v2/tickers/${coin_lw[0]}${coin_lw[1]}.json`, res => exdata.fillj(res["ticker"], "last", "volbtc", "buy", "sell", "change"));
+                js_request(`https://graviex.net:443/api/v2/tickers/${coin_lw[0]}${coin_lw[1]}.json`, res => exdata.fillj(res.ticker, "last", "volbtc", "buy", "sell", "change"));
                 break;
             }
             case "escodex": {
@@ -211,14 +213,14 @@ function get_ticker(ticker) {
             }
             case "cryptopia": {
                 exdata.link = `https://www.cryptopia.co.nz/Exchange/?market=${coin_up[0]}_${coin_up[1]}`;
-                js_request(`https://www.cryptopia.co.nz/api/GetMarket/${coin_up[0]}_${coin_up[1]}`, res => exdata.fillj(res["Data"], "LastPrice", "BaseVolume", "AskPrice", "BidPrice", "Change"));
+                js_request(`https://www.cryptopia.co.nz/api/GetMarket/${coin_up[0]}_${coin_up[1]}`, res => exdata.fillj(res.Data, "LastPrice", "BaseVolume", "AskPrice", "BidPrice", "Change"));
                 break;
             }
             case "stex": {
                 exdata.link = `https://app.stex.com/en/trade/pair/${coin_up[1]}/${coin_up[0]}`;
                 js_request(`https://app.stex.com/api2/ticker`, res => {
                     tmp = res.find(x => x.market_name === `${coin_up[0]}_${coin_up[1]}`);
-                    exdata.fill(tmp["last"], (parseFloat(tmp["last"]) + parseFloat(tmp["lastDayAgo"])) / 2 * tmp["vol"], tmp["ask"], tmp["bid"], tmp["lastDayAgo"] !== 0 ? (tmp["last"] / tmp["lastDayAgo"] - 1) * 100 : 0); // volume and change not 100% accurate
+                    exdata.fill(tmp.last, (parseFloat(tmp.last) + parseFloat(tmp.lastDayAgo)) / 2 * tmp.vol, tmp.ask, tmp.bid, tmp.lastDayAgo !== 0 ? (tmp.last / tmp.lastDayAgo - 1) * 100 : 0); // volume and change not 100% accurate
                 });
                 break;
             }
@@ -229,8 +231,8 @@ function get_ticker(ticker) {
                     async_request(`https://c-cex.com/t/volume_${coin_lw[1]}.json`).catch(() => { })
                 ]).then(([ticker, volume]) => {
                     try {
-                        exdata.fillj(JSON.parse(ticker)["ticker"], "lastprice", "", "buy", "sell", "");
-                        exdata.volume = ternary_try(() => parseFloat(JSON.parse(volume)["ticker"][coin_lw[0]]["vol"]).toFixed(8), "Error");
+                        exdata.fillj(JSON.parse(ticker).ticker, "lastprice", "", "buy", "sell", "");
+                        exdata.volume = ternary_try(() => parseFloat(JSON.parse(volume).ticker[coin_lw[0]].vol).toFixed(8), "Error");
                     }
                     catch (e) { /**/ }
                     resolve(exdata);
@@ -244,14 +246,14 @@ function get_ticker(ticker) {
             }
             case "yobit": {
                 exdata.link = `https://yobit.net/en/trade/${coin_up[0]}/${coin_up[1]}`;
-                js_request(`https://yobit.net/api/2/${coin_lw[0]}_${coin_lw[1]}/ticker`, res => exdata.fillj(res["ticker"], "last", "vol", "buy", "sell", "")); // change not supported
+                js_request(`https://yobit.net/api/2/${coin_lw[0]}_${coin_lw[1]}/ticker`, res => exdata.fillj(res.ticker, "last", "vol", "buy", "sell", "")); // change not supported
                 break;
             }
             case "bittrex": {
                 exdata.link = `https://www.bittrex.com/Market/Index?MarketName=${coin_up[1]}-${coin_up[0]}`;
                 js_request(`https://bittrex.com/api/v1.1/public/getmarketsummary?market=${coin_lw[1]}-${coin_lw[0]}`, res => {
-                    tmp = res["result"][0];
-                    exdata.fill(tmp["Last"], tmp["BaseVolume"], tmp["Bid"], tmp["Ask"], tmp["Last"] / tmp["PrevDay"]); // change not 100% accurate
+                    tmp = res.result[0];
+                    exdata.fill(tmp.Last, tmp.BaseVolume, tmp.Bid, tmp.Ask, tmp.Last / tmp.PrevDay); // change not 100% accurate
                 });
                 break;
             }
@@ -279,54 +281,29 @@ function get_ticker(ticker) {
             case "coinex": {
                 exdata.link = `https://www.coinex.com/exchange?currency=${coin_lw[1]}&dest=${coin_lw[0]}#limit`;
                 js_request(`https://api.coinex.com/v1/market/ticker?market=${coin_up[0]}${coin_up[1]}`, res => {
-                    tmp = res["data"]["ticker"];
-                    exdata.fill(tmp["last"], (parseFloat(tmp["high"]) + parseFloat(tmp["low"])) / 2 * tmp["vol"], tmp["buy"], tmp["sell"], tmp["last"] / tmp["open"]); // volume not 100% accurate
+                    tmp = res.data.ticker;
+                    exdata.fill(tmp.last, (parseFloat(tmp.high) + parseFloat(tmp.low)) / 2 * tmp.vol, tmp.buy, tmp.sell, tmp.last / tmp.open); // volume not 100% accurate
                 });
                 break;
             }
             case "p2pb2b": {
                 exdata.link = `https://p2pb2b.io/trade/${coin_up[0]}_${coin_up[1]}`;
-                js_request(`https://p2pb2b.io/api/v1/public/ticker?market=${coin_up[0]}_${coin_up[1]}`, res => exdata.fillj(res["result"], "last", "deal", "bid", "ask", "change"));
+                js_request(`https://p2pb2b.io/api/v1/public/ticker?market=${coin_up[0]}_${coin_up[1]}`, res => exdata.fillj(res.result, "last", "deal", "bid", "ask", "change"));
                 break;
             }
             case "coinsbit": {
                 exdata.link = `https://coinsbit.io/trade/${coin_up[0]}_${coin_up[1]}`;
-                js_request(`https://coinsbit.io/api/v1/public/ticker?market=${coin_up[0]}_${coin_up[1]}`, res => exdata.fillj(res["result"], "last", "deal", "bid", "ask", "change"));
-                break;
-            }
-            case "zolex": {
-                exdata.link = `https://zolex.org/trading/${coin_lw[0]}${coin_lw[1]}`;
-                Promise.all([
-                    async_request(`https://zolex.org/api/v2/tickers/${coin_lw[0]}${coin_lw[1]}`).catch(() => { }),
-                    async_request(`https://zolex.org/api/v2/k?market=${coin_lw[0]}${coin_lw[1]}&limit=1440&period=1`).catch(() => { })
-                ]).then(([res, ohlc]) => {
-                    try {
-                        res = JSON.parse(res)["ticker"];
-                        res.chg = ternary_try(() => {
-                            tmp = JSON.parse(ohlc);
-                            return tmp[0][1] !== 0 ? (res["last"] / tmp[0][1] - 1) * 100 : 0;
-                        }, 0);
-                        exdata.fillj(res, "last", "", "buy", "sell", "chg");
-                        exdata.volume = ternary_try(() => {
-                            let vol = 0.00;
-                            for (let x of JSON.parse(ohlc).filter(x => x[5] > 0))
-                                vol += x.slice(1, 5).reduce((pv, cv) => pv + cv) / 4 * x[5];
-                            return vol.toFixed(8);
-                        }, "Error");
-                    }
-                    catch (e) { /**/ }
-                    resolve(exdata);
-                });
+                js_request(`https://coinsbit.io/api/v1/public/ticker?market=${coin_up[0]}_${coin_up[1]}`, res => exdata.fillj(res,result, "last", "deal", "bid", "ask", "change"));
                 break;
             }
             case "tradesatoshi": {
                 exdata.link = `https://tradesatoshi.com/Exchange/?market=${coin_up[0]}_${coin_up[1]}`;
-                js_request(`https://tradesatoshi.com/api/public/getmarketsummary?market=${coin_up[0]}_${coin_up[1]}`, res => exdata.fillj(res["result"], "last", "baseVolume", "bid", "ask", "change"));
+                js_request(`https://tradesatoshi.com/api/public/getmarketsummary?market=${coin_up[0]}_${coin_up[1]}`, res => exdata.fillj(res.result, "last", "baseVolume", "bid", "ask", "change"));
                 break;
             }
             case "coinbene": {
                 exdata.link = `https://www.coinbene.com/exchange.html#/exchange?pairId=${coin_up[0]}${coin_up[1]}`;
-                js_request(`https://api.coinbene.com/v1/market/ticker?symbol=${coin_lw[0]}${coin_lw[1]}`, res => exdata.fillj(res["ticker"][0], "last", "24hrAmt", "bid", "ask", "")); // not supported change
+                js_request(`https://api.coinbene.com/v1/market/ticker?symbol=${coin_lw[0]}${coin_lw[1]}`, res => exdata.fillj(res.ticker[0], "last", "24hrAmt", "bid", "ask", "")); // not supported change
                 break;
             }
             case "finexbox": {
@@ -336,8 +313,8 @@ function get_ticker(ticker) {
                     async_request(`https://xapi.finexbox.com/v1/orders?market=${coin_lw[0]}_${coin_lw[1]}&count=1`).catch(() => { })
                 ]).then(([res, ord]) => {
                     try {
-                        res = JSON.parse(res)["result"];
-                        ord = JSON.parse(ord)["result"];
+                        res = JSON.parse(res).result;
+                        ord = JSON.parse(ord).result;
                         exdata.fill(res.price, res.volume * res.average, ord.buy.length && ord.buy[0].price, ord.sell.length && ord.sell[0].price); // volume not 100% accurate, 24h change not supported
                     }
                     catch (e) { /**/ }
@@ -401,28 +378,22 @@ function price_avg() {
 }
 function price_btc_usd() {
     return new Promise((resolve, reject) => {
-        let req = new XMLHttpRequest();
-        req.open("GET", "https://min-api.cryptocompare.com/data/price?fsym=BTC&tsyms=USD");
-        req.onreadystatechange = () => {
-            if (req.readyState === 4) {
-                if (req.status === 200) {
-                    try {
-                        resolve(JSON.parse(req.responseText)["USD"]);
-                    }
-                    catch (e) { /**/ }
-                }
+        async_request("https://min-api.cryptocompare.com/data/price?fsym=BTC&tsyms=USD").then(res => {
+            try {
+                resolve(JSON.parse(res).USD);
+            }
+            catch (e) {
                 resolve(0);
             }
-        };
-        req.send();
+        }).catch(() => resolve(0));
     });
 }
 function request_mncount() {
     let cmd_res = bash_cmd(conf.requests.mncount);
     try {
         let json = JSON.parse(cmd_res);
-        if (json["enabled"] !== undefined)
-            return json["enabled"].toString();
+        if (json.enabled !== undefined)
+            return json.enabled.toString();
     }
     catch (e) { /**/ }
     cmd_res = cmd_res.toString().replace("\n", "").trim();
@@ -824,7 +795,7 @@ class BotCommand {
     balance(addr) {
         try {
             let json = JSON.parse(bash_cmd(conf.requests.balance + addr));
-            if (json["sent"] !== undefined && json["received"] !== undefined && json["balance"] !== undefined) {
+            if (json.sent !== undefined && json.received !== undefined && json.balance !== undefined) {
                 this.fn_send({
                     embed: {
                         title: "Balance",
@@ -836,17 +807,17 @@ class BotCommand {
                             },
                             {
                                 name: "Sent",
-                                value: json["sent"].toString().replace(/(\d)(?=(?:\d{3})+(?:\.|$))|(\.\d{4}?)\d*$/g, (m, s1, s2) => s2 || s1 + ',') + " " + conf.coin,
+                                value: json.sent.toString().replace(/(\d)(?=(?:\d{3})+(?:\.|$))|(\.\d{4}?)\d*$/g, (m, s1, s2) => s2 || s1 + ',') + " " + conf.coin,
                                 inline: true
                             },
                             {
                                 name: "Received",
-                                value: json["received"].toString().replace(/(\d)(?=(?:\d{3})+(?:\.|$))|(\.\d{4}?)\d*$/g, (m, s1, s2) => s2 || s1 + ',') + " " + conf.coin,
+                                value: json.received.toString().replace(/(\d)(?=(?:\d{3})+(?:\.|$))|(\.\d{4}?)\d*$/g, (m, s1, s2) => s2 || s1 + ',') + " " + conf.coin,
                                 inline: true
                             },
                             {
                                 name: "Balance",
-                                value: json["balance"].toString().replace(/(\d)(?=(?:\d{3})+(?:\.|$))|(\.\d{4}?)\d*$/g, (m, s1, s2) => s2 || s1 + ',') + " " + conf.coin,
+                                value: json.balance.toString().replace(/(\d)(?=(?:\d{3})+(?:\.|$))|(\.\d{4}?)\d*$/g, (m, s1, s2) => s2 || s1 + ',') + " " + conf.coin,
                                 inline: true
                             }
                         ],
@@ -869,16 +840,16 @@ class BotCommand {
             try {
                 let json = JSON.parse(bash_cmd(conf.requests.blockhash + hash));
                 str =
-                    "**Index:** " + json["height"] + "\n" +
-                    "**Hash:** " + json["hash"] + "\n" +
-                    "**Confirmations:** " + json["confirmations"] + "\n" +
-                    "**Size:** " + json["size"] + "\n" +
-                    "**Date:** " + new Date(new Number(json["time"]) * 1000).toUTCString() + "\n" +
-                    "**Prev Hash:** " + json["previousblockhash"] + "\n" +
-                    "**Next Hash:** " + json["nextblockhash"] + "\n" +
+                    "**Index:** " + json.height + "\n" +
+                    "**Hash:** " + json.hash + "\n" +
+                    "**Confirmations:** " + json.confirmations + "\n" +
+                    "**Size:** " + json.size + "\n" +
+                    "**Date:** " + new Date(new Number(json.time) * 1000).toUTCString() + "\n" +
+                    "**Prev Hash:** " + json.previousblockhash + "\n" +
+                    "**Next Hash:** " + json.nextblockhash + "\n" +
                     "**Transactions:**\n";
-                for (let i = 0; i < json["tx"].length; i++)
-                    str += json["tx"][i] + "\n";
+                for (let i = 0; i < json.tx.length; i++)
+                    str += json.tx[i] + "\n";
             }
             catch (e) { /**/ }
         }
@@ -896,7 +867,7 @@ class BotCommand {
         for (let addr of addrs) {
             try {
                 let json = JSON.parse(bash_cmd(conf.requests.balance + addr));
-                if (json["sent"] !== undefined && json["received"] !== undefined && json["balance"] !== undefined) {
+                if (json.sent !== undefined && json.received !== undefined && json.balance !== undefined) {
                     let addrs_list = fs.existsSync(users_addr_folder + "/" + this.msg.author.id + ".txt") ? fs.readFileSync(users_addr_folder + "/" + this.msg.author.id + ".txt", "utf8").split(/\r?\n/) : [];
                     if (addrs_list.indexOf(addr) === -1) {
                         fs.writeFileSync(users_addr_folder + "/" + this.msg.author.id + ".txt", addrs_list.concat([addr]).join("\n"));
@@ -961,10 +932,10 @@ class BotCommand {
         for (let addr of fs.readFileSync(users_addr_folder + "/" + this.msg.author.id + ".txt", "utf-8").split(/\r?\n/).filter(Boolean)) {
             try {
                 let json = JSON.parse(bash_cmd(conf.requests.balance + addr));
-                if (json["sent"] !== undefined && json["received"] !== undefined && json["balance"] !== undefined) {
-                    sent += parseFloat(json["sent"]);
-                    recv += parseFloat(json["received"]);
-                    bal += parseFloat(json["balance"]);
+                if (json.sent !== undefined && json.received !== undefined && json.balance !== undefined) {
+                    sent += parseFloat(json.sent);
+                    recv += parseFloat(json.received);
+                    bal += parseFloat(json.balance);
                 }
             }
             catch (e) {
@@ -1004,11 +975,11 @@ class BotCommand {
                 let json = JSON.parse(bash_cmd(conf.requests.mnstat + addr));
                 if (Array.isArray(json))
                     json = json[0];
-                if (json["status"] !== undefined && json["addr"] === addr) {
+                if (json.status !== undefined && json.addr === addr) {
                     let addrs_list = fs.existsSync(users_mn_folder + "/" + this.msg.author.id + ".txt") ? fs.readFileSync(users_mn_folder + "/" + this.msg.author.id + ".txt", "utf8").split(/\r?\n/) : [];
                     if (addrs_list.indexOf(addr) === -1) {
                         fs.writeFileSync(users_mn_folder + "/" + this.msg.author.id + ".txt", addrs_list.concat([addr]).join("\n"));
-                        this.fn_send(simple_message("User Masternode Add", "Masternode address `" + addr + "` assigned to <@" + this.msg.author.id + ">\nStatus: " + json["status"]));
+                        this.fn_send(simple_message("User Masternode Add", "Masternode address `" + addr + "` assigned to <@" + this.msg.author.id + ">\nStatus: " + json.status));
                     }
                     else {
                         this.fn_send(simple_message("User Masternode Add", "Masternode address `" + addr + "` already has been assigned to <@" + this.msg.author.id + ">"));
@@ -1057,8 +1028,8 @@ class BotCommand {
                 let json = JSON.parse(bash_cmd(conf.requests.mnstat + addr));
                 if (Array.isArray(json))
                     json = json[0];
-                if (json["status"] !== undefined && json["addr"] !== undefined)
-                    mn_str += " : " + json["status"] + "\n";
+                if (json.status !== undefined && json.addr !== undefined)
+                    mn_str += " : " + json.status + "\n";
             }
             catch (e) {
                 mn_str += " : NOT_FOUND\n";
@@ -1205,7 +1176,7 @@ class BotCommand {
                     "**Source Code:** [Link](https://github.com/neo3587/discord_cryptobot)\n" +
                     "**Description:** A simple bot for " + conf.coin + " to check the current status of the currency in many ways, use **!help** to see these ways\n" +
                     (conf.coin in donate ? "**" + conf.coin + " Donations (to author):** `" + donate[conf.coin] + "`\n" : "") +
-                    "**BTC Donations (to author):** `" + donate["BTC"] + "`"
+                    "**BTC Donations (to author):** `" + donate.BTC + "`"
             }
         });
     }
