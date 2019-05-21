@@ -314,11 +314,18 @@ function get_ticker(ticker) {
                 ]).then(([res, ord]) => {
                     try {
                         res = JSON.parse(res).result;
-                        ord = JSON.parse(ord).result;
-                        exdata.fill(res.price, res.volume * res.average, ord.buy.length && ord.buy[0].price, ord.sell.length && ord.sell[0].price); // volume not 100% accurate, 24h change not supported
+                        exdata.price = res.price;
+                        exdata.volume = res.volume * res.average;
                     }
                     catch (e) { /**/ }
-                    resolve(exdata);
+                    try {
+                        ord = JSON.parse(ord).result;
+                        exdata.buy = ord.buy.length && ord.buy[0].price;
+                        exdata.sell = ord.sell.length && ord.sell[0].price; 
+                    }
+                    catch (e) { /**/ }
+                    exdata.change = undefined;
+                    resolve(exdata); // volume not 100% accurate, 24h change not supported
                 });
                 break;
             }
@@ -1448,6 +1455,7 @@ if (conf.ticker.some(x => ["hotdex"].includes((Array.isArray(x) ? x[0] : x).toLo
     }
 }
 
+
 if (process.argv.length >= 3 && process.argv[2] === "background")
     configure_systemd("discord_cryptobot");
 else if (process.argv.length >= 3 && process.argv[2] === "handled_child")
@@ -1457,4 +1465,3 @@ else if (process.argv.length >= 3 && process.argv[2] === "handled_child")
     });
 else
     handle_child();
-
