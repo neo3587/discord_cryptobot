@@ -63,11 +63,15 @@ class ExchangeData {
     fill(price, volume, buy, sell, change) {
         if (price === undefined && volume === undefined && buy === undefined && sell === undefined && change === undefined)
             return;
-        this.price  = isNaN(price)  ? undefined : parseFloat(price).toFixed(8);
-        this.volume = isNaN(volume) ? undefined : parseFloat(volume).toFixed(8);
-        this.buy    = isNaN(buy)    ? undefined : parseFloat(buy).toFixed(8);
-        this.sell   = isNaN(sell)   ? undefined : parseFloat(sell).toFixed(8);
-        this.change = isNaN(change) ? undefined : (change >= 0.0 ? "+" : "") + parseFloat(change).toFixed(2) + "%";
+        this.set("price", price);
+        this.set("volume", volume);
+        this.set("buy", buy);
+        this.set("sell", sell);
+        this.set("change", change);
+    }
+    set(prop, val) {
+        this[prop] = isNaN(val) ? undefined : prop !== "change" ? parseFloat(val).toFixed(8) :
+                                                                  (val >= 0.0 ? "+" : "") + parseFloat(val).toFixed(2) + "%";
     }
 }
 
@@ -203,7 +207,10 @@ function get_ticker(ticker) {
             }
             case "graviex": {
                 exdata.link = `https://graviex.net/markets/${coin_lw[0]}${coin_lw[1]}`;
-                js_request(`https://graviex.net:443/api/v2/tickers/${coin_lw[0]}${coin_lw[1]}.json`, res => exdata.fillj(res.ticker, "last", "volbtc", "buy", "sell", "change"));
+                js_request(`https://graviex.net:443/api/v2/tickers/${coin_lw[0]}${coin_lw[1]}.json`, res => {
+                    exdata.fillj(res.ticker, "last", "volbtc", "buy", "sell", "change");
+                    exdata.change *= 100;
+                });
                 break;
             }
             case "escodex": {
@@ -314,14 +321,14 @@ function get_ticker(ticker) {
                 ]).then(([res, ord]) => {
                     try {
                         res = JSON.parse(res).result;
-                        exdata.price = res.price;
-                        exdata.volume = res.volume * res.average;
+                        exdata.set("price", res.price);
+                        exdata.set("volume", res.volume * res.average);
                     }
                     catch (e) { /**/ }
                     try {
                         ord = JSON.parse(ord).result;
-                        exdata.buy = ord.buy.length && ord.buy[0].price;
-                        exdata.sell = ord.sell.length && ord.sell[0].price; 
+                        exdata.set("buy", ord.buy.length && ord.buy[0].price);
+                        exdata.set("sell", ord.sell.length && ord.sell[0].price); 
                     }
                     catch (e) { /**/ }
                     exdata.change = undefined;
