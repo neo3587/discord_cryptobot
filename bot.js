@@ -208,8 +208,8 @@ function get_ticker(ticker) {
             case "graviex": {
                 exdata.link = `https://graviex.net/markets/${coin_lw[0]}${coin_lw[1]}`;
                 js_request(`https://graviex.net:443/api/v2/tickers/${coin_lw[0]}${coin_lw[1]}.json`, res => {
-                    exdata.fillj(res.ticker, "last", "volbtc", "buy", "sell", "change");
-                    exdata.change *= 100;
+                    res = res.ticker;
+                    exdata.fill(res.last, res.volbtc, res.buy, res.sell, res.change * 100);
                 });
                 break;
             }
