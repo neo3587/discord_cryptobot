@@ -6,8 +6,8 @@
         - !my-masternode-list -> click => info... is it even possible?, if not => field message (status, protocol, last seen, last payed, active time)
         - share api calls on monitor to decrease the network usage ?
         - modular monitor requests ? 
+        - bitshares node list
         - tiered MNs support
-        - expand embed color options
         - channel name stats
 */
 
@@ -25,7 +25,10 @@ const users_mn_folder = path.dirname(process.argv[1]) + "/.db_users_mn";
 /** @typedef {Object} Configuration
   * @property {string[]} special_ticker -
   * @property {Array<string|string[]>} ticker -
-  * @property {{prices:number, coininfo:number, explorer:number, other:number, error:number}} color -
+  * @property {{price:number, stats:number, stages:number, earnings:number, mining:number, addnodes:number, balance:number, block_hash:number,
+                my_address_add:number, my_address_del:number, my_address_list:number, my_balance:number, 
+                my_masternode_add:number, my_masternode_del:number, my_masternode_list:number, my_earnings:number,
+                help:number, about:number, warning:number, error:number}} color -
   * @property {string[]} devs -
   * @property {{block:number, coll?: number, mn?:number, pos?:number, pow?:number}[]} stages -
   * @property {{blockcount:string, mncount:string, supply:string, balance:string, blockindex:string, blockhash:string, mnstat:string, addnodes:string}} requests -
@@ -481,7 +484,7 @@ function create_no_exists(path, file = false) {
             fs.mkdirSync(path);
     }
 }
-function simple_message(title, descr, color = conf.color.explorer) {
+function simple_message(title, descr, color = conf.color.error) {
     return {
         embed: {
             title: title,
@@ -517,7 +520,7 @@ class BotCommand {
 
             let embed = new Discord.RichEmbed();
             embed.title = "Price Ticker";
-            embed.color = conf.color.prices;
+            embed.color = conf.color.price;
             embed.timestamp = new Date();
 
             for (let data of values) {
@@ -557,7 +560,7 @@ class BotCommand {
 
             let embed = new Discord.RichEmbed();
             embed.title = conf.coin + " Stats";
-            embed.color = conf.color.coininfo;
+            embed.color = conf.color.stats;
             embed.timestamp = new Date();
 
             for (let stat of conf.statorder) {
@@ -641,7 +644,7 @@ class BotCommand {
 
             let embed = new Discord.RichEmbed();
             embed.title = conf.coin + " Stages";
-            embed.color = conf.color.coininfo;
+            embed.color = conf.color.stages;
             embed.timestamp = new Date();
 
             if (isNaN(blockcount) && blockcount.trim() !== "") {
@@ -691,7 +694,7 @@ class BotCommand {
                 this.fn_send({
                     embed: {
                         title: conf.coin + " Earnings" + (mns !== 1 ? " (" + mns + " MNs)" : ""),
-                        color: conf.color.coininfo,
+                        color: conf.color.earnings,
                         fields: [
                             {
                                 name: "ROI",
@@ -715,14 +718,7 @@ class BotCommand {
                 });
             }
             else {
-                this.fn_send({
-                    embed: {
-                        title: conf.coin + " Earnings",
-                        color: conf.color.coininfo,
-                        description: (valid.blockcount ? "" : "There seems to be a problem with the `blockcount` request\n") + (valid.mncount ? "" : "There seems to be a problem with the `mncount` request"),
-                        timestamp: new Date()
-                    }
-                });
+                this.fn_send(simple_message(conf.coin + " Earnings", (valid.blockcount ? "" : "There seems to be a problem with the `blockcount` request\n") + (valid.mncount ? "" : "There seems to be a problem with the `mncount` request")));
             }
         });
     }
@@ -767,7 +763,7 @@ class BotCommand {
                     this.fn_send({
                         embed: {
                             title: conf.coin + " Mining (" + hr + " " + letter + "H/s)",
-                            color: conf.color.coininfo,
+                            color: stage.pow === undefined ? conf.color.warning : conf.color.mining,
                             description: stage.pow === undefined ? "POW disabled in the current coin stage" : "",
                             fields: stage.pow === undefined ? [] : earn_fields(coinday, avgbtc, priceusd),
                             timestamp: new Date()
@@ -777,20 +773,13 @@ class BotCommand {
                 else {
                     this.fn_send(simple_message(conf.coin + " Mining (" + hr + " " + letter + "H/s)",
                         (valid.blockcount ? "" : "There seems to be a problem with the `blockcount` request\n") +
-                        (valid.hashrate ? "" : "There seems to be a problem with the `hashrate` request"),
-                        conf.color.coininfo,
+                        (valid.hashrate ? "" : "There seems to be a problem with the `hashrate` request")
                     ));
                 }
             });
         }
         else {
-            this.fn_send({
-                embed: {
-                    title: conf.coin + " Mining ( ? H/s)",
-                    color: conf.color.coininfo,
-                    description: "Invalid hashrate"
-                }
-            });
+            this.fn_send(simple_message(conf.coin + " Mining ( ? H/s)", "Invalid hashrate"));
         }
     }
     addnodes() {
@@ -798,10 +787,10 @@ class BotCommand {
             try {
                 let str = "";
                 JSON.parse(info).slice(0, 16).forEach(x => str += `addnode=${x.addr}\n`);
-                this.fn_send(simple_message(conf.coin + " addnodes", "```ini\n" + str + "\n```", 5198940));
+                this.fn_send(simple_message(conf.coin + " addnodes", "```ini\n" + str + "\n```", conf.color.addnodes));
             }
             catch (e) {
-                this.msg.send(simple_message("Addnodes", "There seems to be a problem with the `addnodes` request", conf.color.coininfo));
+                this.msg.send(simple_message("Addnodes", "There seems to be a problem with the `addnodes` request"));
             }
         });
     }
@@ -813,7 +802,7 @@ class BotCommand {
                 this.fn_send({
                     embed: {
                         title: "Balance",
-                        color: conf.color.explorer,
+                        color: conf.color.balance,
                         fields: [
                             {
                                 name: "Address",
@@ -848,9 +837,9 @@ class BotCommand {
         this.block_hash(bash_cmd(conf.requests.blockindex + index));
     }
     block_hash(hash) {
-        let str = "Invalid block index or hash";
-
+        
         if (/^[A-Za-z0-9\n]+$/.test(hash)) {
+            let str = "";
             try {
                 let json = JSON.parse(bash_cmd(conf.requests.blockhash + hash));
                 str =
@@ -864,16 +853,12 @@ class BotCommand {
                     "**Transactions:**\n";
                 for (let i = 0; i < json.tx.length; i++)
                     str += json.tx[i] + "\n";
+                this.fn_send(simple_message("Block info", str, conf.color.block_hash));
+                return;
             }
             catch (e) { /**/ }
         }
-        this.fn_send({
-            embed: {
-                title: "Block info",
-                color: conf.color.explorer,
-                description: str
-            }
-        });
+        this.fn_send(simple_message("Block info", "Invalid block index or hash"));
     }
 
     my_address_add(addrs) {
@@ -885,10 +870,10 @@ class BotCommand {
                     let addrs_list = fs.existsSync(users_addr_folder + "/" + this.msg.author.id + ".txt") ? fs.readFileSync(users_addr_folder + "/" + this.msg.author.id + ".txt", "utf8").split(/\r?\n/) : [];
                     if (addrs_list.indexOf(addr) === -1) {
                         fs.writeFileSync(users_addr_folder + "/" + this.msg.author.id + ".txt", addrs_list.concat([addr]).join("\n"));
-                        this.fn_send(simple_message("User Address Add", "Address `" + addr + "` assigned to <@" + this.msg.author.id + ">"));
+                        this.fn_send(simple_message("User Address Add", "Address `" + addr + "` assigned to <@" + this.msg.author.id + ">", conf.color.my_address_add));
                     }
                     else {
-                        this.fn_send(simple_message("User Address Add", "Address `" + addr + "` already has been assigned to <@" + this.msg.author.id + ">"));
+                        this.fn_send(simple_message("User Address Add", "Address `" + addr + "` already has been assigned to <@" + this.msg.author.id + ">", conf.color.my_address_add));
                     }
                     continue;
                 }
@@ -901,7 +886,7 @@ class BotCommand {
         create_no_exists(users_addr_folder);
         for (let addr of addrs) {
             if (!fs.existsSync(users_addr_folder + "/" + this.msg.author.id + ".txt")) {
-                this.fn_send(simple_message("User Address Delete", "There aren't addresses assigned to <@" + this.msg.author.id + ">"));
+                this.fn_send(simple_message("User Address Delete", "There aren't addresses assigned to <@" + this.msg.author.id + ">", conf.color.warning));
                 return;
             }
             let addrs_list = fs.readFileSync(users_addr_folder + "/" + this.msg.author.id + ".txt", "utf8").split(/\r?\n/).filter(Boolean);
@@ -912,7 +897,7 @@ class BotCommand {
                     fs.writeFileSync(users_addr_folder + "/" + this.msg.author.id + ".txt", addrs_list.join("\n"));
                 else
                     fs.unlinkSync(users_addr_folder + "/" + this.msg.author.id + ".txt");
-                this.fn_send(simple_message("User Address Delete", "Address `" + addr + "` deleted from <@" + this.msg.author.id + "> assigned addresses"));
+                this.fn_send(simple_message("User Address Delete", "Address `" + addr + "` deleted from <@" + this.msg.author.id + "> assigned addresses", conf.color.my_address_del));
             }
             else {
                 this.fn_send(simple_message("User Address Delete", "Address `" + addr + "` isn't assgined to <@" + this.msg.author.id + ">\nUse `" + conf.prefix + "my-address-list` to get your assigned addresses"));
@@ -922,23 +907,23 @@ class BotCommand {
     my_address_list() {
         create_no_exists(users_addr_folder);
         if (!fs.existsSync(users_addr_folder + "/" + this.msg.author.id + ".txt")) {
-            this.fn_send(simple_message("User Address List", "There aren't addresses assigned to <@" + this.msg.author.id + ">\nUse `" + conf.prefix + "my-address-add ADDRESS` to assign addresses to your account"));
+            this.fn_send(simple_message("User Address List", "There aren't addresses assigned to <@" + this.msg.author.id + ">\nUse `" + conf.prefix + "my-address-add ADDRESS` to assign addresses to your account", conf.color.warning));
             return;
         }
 
         let addr_str = "`" + fs.readFileSync(users_addr_folder + "/" + this.msg.author.id + ".txt", "utf8").split(/\r?\n/).filter(Boolean).join("`, `") + "`";
         if (addr_str.length < 2000) {
-            this.fn_send(simple_message("User Address List", addr_str));
+            this.fn_send(simple_message("User Address List", addr_str, conf.color.my_address_list));
         }
         else {
-            this.fn_send(simple_message("User Address List", "Address list too large, sent via dm"));
+            this.fn_send(simple_message("User Address List", "Address list too large, sent via dm", conf.color.warning));
             this.msg.author.send(addr_str);
         }
     }
     my_balance() {
         create_no_exists(users_addr_folder);
         if (!fs.existsSync(users_addr_folder + "/" + this.msg.author.id + ".txt")) {
-            this.fn_send(simple_message("User Balance", "There aren't addresses assigned to <@" + this.msg.author.id + ">\nUse `" + conf.prefix + "my-address-add ADDRESS` to assign addresses to your account"));
+            this.fn_send(simple_message("User Balance", "There aren't addresses assigned to <@" + this.msg.author.id + ">\nUse `" + conf.prefix + "my-address-add ADDRESS` to assign addresses to your account", conf.color.my_balance));
             return;
         }
 
@@ -952,14 +937,12 @@ class BotCommand {
                     bal += parseFloat(json.balance);
                 }
             }
-            catch (e) {
-                //
-            }
+            catch (e) { /**/ }
         }
         this.fn_send({
             embed: {
                 title: "User Balance",
-                color: conf.color.explorer,
+                color: conf.color.my_balance,
                 fields: [
                     {
                         name: "Sent",
@@ -993,10 +976,10 @@ class BotCommand {
                     let addrs_list = fs.existsSync(users_mn_folder + "/" + this.msg.author.id + ".txt") ? fs.readFileSync(users_mn_folder + "/" + this.msg.author.id + ".txt", "utf8").split(/\r?\n/) : [];
                     if (addrs_list.indexOf(addr) === -1) {
                         fs.writeFileSync(users_mn_folder + "/" + this.msg.author.id + ".txt", addrs_list.concat([addr]).join("\n"));
-                        this.fn_send(simple_message("User Masternode Add", "Masternode address `" + addr + "` assigned to <@" + this.msg.author.id + ">\nStatus: " + json.status));
+                        this.fn_send(simple_message("User Masternode Add", "Masternode address `" + addr + "` assigned to <@" + this.msg.author.id + ">\nStatus: " + json.status, conf.color.my_masternode_add));
                     }
                     else {
-                        this.fn_send(simple_message("User Masternode Add", "Masternode address `" + addr + "` already has been assigned to <@" + this.msg.author.id + ">"));
+                        this.fn_send(simple_message("User Masternode Add", "Masternode address `" + addr + "` already has been assigned to <@" + this.msg.author.id + ">", conf.color.warning));
                     }
                 }
             }
@@ -1009,7 +992,7 @@ class BotCommand {
         create_no_exists(users_mn_folder);
         for (let addr of addrs) {
             if (!fs.existsSync(users_mn_folder + "/" + this.msg.author.id + ".txt")) {
-                this.fn_send(simple_message("User Masternode Delete", "There aren't masternode addresses assigned to <@" + this.msg.author.id + ">"));
+                this.fn_send(simple_message("User Masternode Delete", "There aren't masternode addresses assigned to <@" + this.msg.author.id + ">", conf.color.warning));
                 return;
             }
             let addrs_list = fs.readFileSync(users_mn_folder + "/" + this.msg.author.id + ".txt", "utf8").split(/\r?\n/).filter(Boolean);
@@ -1020,7 +1003,7 @@ class BotCommand {
                     fs.writeFileSync(users_mn_folder + "/" + this.msg.author.id + ".txt", addrs_list.join("\n"));
                 else
                     fs.unlinkSync(users_mn_folder + "/" + this.msg.author.id + ".txt");
-                this.fn_send(simple_message("User Masternode Delete", "Masternode address `" + addr + "` deleted from <@" + this.msg.author.id + "> assigned addresses"));
+                this.fn_send(simple_message("User Masternode Delete", "Masternode address `" + addr + "` deleted from <@" + this.msg.author.id + "> assigned addresses", conf.color.my_masternode_del));
             }
             else {
                 this.fn_send(simple_message("User Masternode Delete", "Masternode address `" + addr + "` isn't assgined to <@" + this.msg.author.id + ">\nUse `" + conf.prefix + "my-masternode-list` to get your assigned masternode addresses"));
@@ -1030,7 +1013,7 @@ class BotCommand {
     my_masternode_list() {
         create_no_exists(users_mn_folder);
         if (!fs.existsSync(users_mn_folder + "/" + this.msg.author.id + ".txt")) {
-            this.fn_send(simple_message("User Masternode List", "There aren't masternode addresses assigned to <@" + this.msg.author.id + ">\nUse `" + conf.prefix + "my-masternode-add ADDRESS` to assign masternodes to your account"));
+            this.fn_send(simple_message("User Masternode List", "There aren't masternode addresses assigned to <@" + this.msg.author.id + ">\nUse `" + conf.prefix + "my-masternode-add ADDRESS` to assign masternodes to your account", conf.color.warning));
             return;
         }
 
@@ -1051,19 +1034,19 @@ class BotCommand {
         }
 
         if (mn_str.length < 2000) {
-            this.fn_send(simple_message("User Masternode List", mn_str));
+            this.fn_send(simple_message("User Masternode List", mn_str, conf.color.my_masternode_list));
         }
         else {
             let mn_split = mn_str.split(/\r?\n/);
             let splits = parseInt(mn_split.length / 30) + 1;
             for (let i = 1; mn_split.length > 0; i++)
-                this.fn_send(simple_message("User Masternode List (" + i + "/" + splits + ")", mn_split.splice(0, 30).join("\n")));
+                this.fn_send(simple_message("User Masternode List (" + i + "/" + splits + ")", mn_split.splice(0, 30).join("\n"), conf.color.my_masternode_list));
         }
     }
     my_earnings() {
         create_no_exists(users_mn_folder);
         if (!fs.existsSync(users_mn_folder + "/" + this.msg.author.id + ".txt")) {
-            this.fn_send(simple_message("User Earnings", "There aren't masternode addresses assigned to <@" + this.msg.author.id + ">\nUse `" + conf.prefix + "my-masternode-add ADDRESS` to assign masternodes to your account"));
+            this.fn_send(simple_message("User Earnings", "There aren't masternode addresses assigned to <@" + this.msg.author.id + ">\nUse `" + conf.prefix + "my-masternode-add ADDRESS` to assign masternodes to your account", conf.color.warning));
             return;
         }
 
@@ -1087,7 +1070,7 @@ class BotCommand {
                 this.fn_send({
                     embed: {
                         title: "User Earnings (" + mns + " MNs)",
-                        color: conf.color.coininfo,
+                        color: conf.color.my_earnings,
                         fields: [
                             {
                                 name: "Time to get 1 MN",
@@ -1099,14 +1082,7 @@ class BotCommand {
                 });
             }
             else {
-                this.fn_send({
-                    embed: {
-                        title: "User Earnings (" + mns + " MNs)",
-                        color: conf.color.coininfo,
-                        description: (valid.blockcount ? "" : "There seems to be a problem with the `blockcount` request\n") + (valid.mncount ? "" : "There seems to be a problem with the `mncount` request"),
-                        timestamp: new Date()
-                    }
-                });
+                this.fn_send(simple_message("User Earnings (" + mns + " MNs)", (valid.blockcount ? "" : "There seems to be a problem with the `blockcount` request\n") + (valid.mncount ? "" : "There seems to be a problem with the `mncount` request")));
             }
         });
     }
@@ -1115,7 +1091,7 @@ class BotCommand {
         this.fn_send({
             embed: {
                 title: "Available commands",
-                color: conf.color.other,
+                color: conf.color.help,
                 fields: [
                     {
                         name: "Exchanges:",
@@ -1185,7 +1161,7 @@ class BotCommand {
         this.fn_send({
             embed: {
                 title: "About",
-                color: conf.color.other,
+                color: conf.color.about,
                 description: "**Author:** <@464599914962485260>\n" +
                     "**Source Code:** [Link](https://github.com/neo3587/discord_cryptobot)\n" +
                     "**Description:** A simple bot for " + conf.coin + " to check the current status of the currency in many ways, use **!help** to see these ways\n" +
@@ -1297,7 +1273,7 @@ client.on("message", msg => {
         msg.channel.send({
             embed: {
                 title: "**" + conf.prefix + name + " command**",
-                color: conf.color.other,
+                color: conf.color.warning,
                 description: conf.prefix + name + " disabled in the bot configuration"
             }
         });
@@ -1416,23 +1392,11 @@ client.on("message", msg => {
             break;
         }
         case "meaning-of-life": { // easter egg
-            msg.channel.send({
-                embed: {
-                    title: "Answer to life, the universe and everything",
-                    color: conf.color.other,
-                    description: "42"
-                }
-            });
+            msg.channel.send(simple_message("Answer to life, the universe and everything", "42", conf.color.about));
             break;
         }
         case "price-go-to-the-moon": { // easter egg
-            msg.channel.send({
-                embed: {
-                    title: "**Price Ticker**",
-                    color: conf.color.prices,
-                    description: "**All Exchanges: ** One jillion satoshis"
-                }
-            });
+            msg.channel.send(simple_message("**Price Ticker**", "**All Exchanges: ** One jillion satoshis", conf.color.price));
             break;
         }
 

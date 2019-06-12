@@ -7,10 +7,31 @@
     "Moondex"
   ],
   "color": {
-    "prices": 3447003,
-    "coininfo": 888688,
-    "explorer": 888688,
-    "other": 15662976,
+    "price": 3447003,
+
+    "stats": 888688,
+    "stages": 888688,
+    "earnings": 888688,
+    "mining": 888688,
+    "addnodes": 5198940,
+
+    "balance": 888688,
+    "block_hash": 888688,
+
+    "my_address_add": 888688,
+    "my_address_del": 888688,
+    "my_address_list": 888688,
+    "my_balance": 888688,
+
+    "my_masternode_add": 888688,
+    "my_masternode_del": 888688,
+    "my_masternode_list": 888688,
+    "my_earnings": 888688,
+
+    "help": 15662976,
+    "about": 15662976,
+
+    "warning": 16744231,
     "error": 9375030
   },
   "devs": [
