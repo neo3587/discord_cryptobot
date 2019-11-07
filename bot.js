@@ -368,7 +368,12 @@ function get_ticker(ticker) {
                     resolve(exdata);
                 });
                 break;
-            }
+			}
+			case "cryptohubexchange": {
+				exdata.link = `https://cryptohubexchange.com/market/${coin_up[0]}/${coin_up[1]}/`;
+				js_request(`https://cryptohubexchange.com/api/market/ticker/${coin_up[0]}/`, res => exdata.fillj(res[`${coin_up[1]}_${coin_up[0]}`], "last", "baseVolume", "highestBid", "lowestAsk", "percentChange"));
+				break;
+			}
             default: {
                 resolve(exdata);
             }
@@ -1435,4 +1440,4 @@ else if (process.argv.length >= 3 && process.argv[2] === "handled_child")
         start_monitor();
     });
 else
-    handle_child();
+	handle_child();
