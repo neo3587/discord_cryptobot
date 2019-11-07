@@ -195,6 +195,7 @@ Important note if you customize the requests:
 - Finexbox [¹⁴](#currently-supported-exchanges-tags)
 - Hotdex [⁵](#currently-supported-exchanges-tags)
 - Midex
+- CryptoHubExchange
 
 <a name = "currently-supported-exchanges-tags"></a>
 *1. BTC volume not 100% accurate*  
