@@ -196,6 +196,7 @@ Important note if you customize the requests:
 - Hotdex [⁵](#currently-supported-exchanges-tags)
 - Midex
 - CryptoHubExchange
+- Altmarkets [⁴](#currently-supported-exchanges-tags)
 
 <a name = "currently-supported-exchanges-tags"></a>
 *1. BTC volume not 100% accurate*  

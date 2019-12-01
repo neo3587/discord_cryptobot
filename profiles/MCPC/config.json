@@ -4,7 +4,8 @@
   },
   "ticker": [
     "Crex24",
-    "Zolex"
+	"Graviex",
+	"Altmarkets"
   ],
   "color": {
     "price": 3447003,

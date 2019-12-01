@@ -374,6 +374,11 @@ function get_ticker(ticker) {
 				js_request(`https://cryptohubexchange.com/api/market/ticker/${coin_up[0]}/`, res => exdata.fillj(res[`${coin_up[1]}_${coin_up[0]}`], "last", "baseVolume", "highestBid", "lowestAsk", "percentChange"));
 				break;
 			}
+			case "altmarkets": {
+				exdata.link = `https://altmarkets.io/trading/${coin_lw[0]}${coin_lw[1]}`;
+				js_request(`https://altmarkets.io/api/v2/tickers/${coin_lw[0]}${coin_lw[1]}`, res => exdata.fillj(res.ticker, "last", "quotevol", "buy", "sell", "")); // not supported change
+				break;
+			}
             default: {
                 resolve(exdata);
             }
