@@ -174,14 +174,9 @@ Important note if you customize the requests:
 
 # <a name = "currently-supported-exchanges"></a> Currently supported exchanges
 
-- CryptoBridge
 - Crex24
-- CoinExchange
 - Graviex
-- Escodex
-- Cryptopia
 - Stex [¹](#currently-supported-exchanges-tags)
-- C-CEX [⁴](#currently-supported-exchanges-tags)
 - HitBTC [⁴](#currently-supported-exchanges-tags)
 - YoBit [⁴](#currently-supported-exchanges-tags)
 - Bittrex [³](#currently-supported-exchanges-tags)
@@ -195,7 +190,6 @@ Important note if you customize the requests:
 - TradeSatoshi
 - CoinBene [³](#currently-supported-exchanges-tags)
 - Finexbox [¹⁴](#currently-supported-exchanges-tags)
-- Hotdex [⁵](#currently-supported-exchanges-tags)
 - Midex
 - CryptoHubExchange
 - Altmarkets [⁴](#currently-supported-exchanges-tags)
@@ -205,7 +199,6 @@ Important note if you customize the requests:
 *2. BTC volume not supported*  
 *3. 24h change not 100% accurate*  
 *4. 24h change not supported*  
-*5. Requires the bitshares package (*`npm install bitsharesjs-ws`*)*  
 *NOTE: The non-supported or not 100% accurate features are due to the exchange API.*  
 *NOTE 2: Feel free to ask for adding support to a specific exchange.*
 
@@ -223,9 +216,9 @@ If you're too lazy or just not sure how to make a profile, I can make one for yo
 
 ```
 BTC Donations:   3F6J19DmD5jowwwQbE9zxXoguGPVR716a7
-BCARD Donations: BQmTwK685ajop8CFY6bWVeM59rXgqZCTJb
-RESQ Donations:  QhsqRbQVNHCAe93puAnHUX96jsmMxtpBNh
-CFL Donations:   c4fuTdr7Z7wZy8WQULmuAdfPDReWfDcoE5
+ETH Donations:   0x7F9D6d654aEb3375A2974294a0911223d5d1DA52
+LTC Donations:   MToq5nZkGh9TWpfQAEjue8ERFcaz6GFB57
+DOGE Donations:  DK19TK7gex1j5gfJ5bebXcnCmwUjbhMHST
 MCPC Donations:  MCwe8WxWNmcZL1CpdpG3yuudGYVphmTSLE
 ```
 
