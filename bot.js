@@ -2,13 +2,20 @@
 /*
     Author: neo3587
     Source: https://github.com/neo3587/discord_cryptobot
-    TODO:
+    TODO (probably... some day):
         - !my-masternode-list -> click => info... is it even possible?, if not => field message (status, protocol, last seen, last payed, active time)
-        - share api calls on monitor to decrease the network usage ?
-        - modular monitor requests ? 
-        - bitshares node list
         - tiered MNs support
-        - channel name stats
+		- external script stage rewards (ex: always halving every N blocks) => print: ["mn":number, "pos":number, "pow":number, "next":block_left]
+
+	ON PROGRESS:
+		[X] remove dead exchanges
+		[ ] price & stats monitor only
+		[ ] channel name price & stats
+		[ ] shared calls
+		[ ] remove useless commands: explorer & user address
+		[ ] join my-masternode colors
+		[ ] my-earnings count only enabled nodes & show disabled count
+		[ ] check for new exchanges to add
 */
 
 const Discord = require("discord.js");
@@ -32,8 +39,9 @@ const users_mn_folder = path.dirname(process.argv[1]) + "/.db_users_mn";
   * @property {string[]} devs -
   * @property {{block:number, coll?: number, mn?:number, pos?:number, pow?:number}[]} stages -
   * @property {{blockcount:string, mncount:string, supply:string, balance:string, blockindex:string, blockhash:string, mnstat:string, addnodes:string}} requests -
-  * @property {string[]} startorder -
+  * @property {string[]} statorder -
   * @property {{enabled:true, channel:string, interval:number}} monitor -
+  * @property {Array<{channel:string, type:string, exchange?:string}>} channel_monitor -
   * @property {boolean} hidenotsupported -
   * @property {boolean} useraddrs -
   * @property {boolean} usermns -
@@ -41,11 +49,46 @@ const users_mn_folder = path.dirname(process.argv[1]) + "/.db_users_mn";
   * @property {string} prefix -
   * @property {string} coin -
   * @property {number} blocktime -
+  * @property {number} tickrate -
   * @property {string} token -
 */
 /** @type {Configuration} */
 const conf = require(config_json_file);
+const shared = new SharedDataTest();
 const client = new Discord.Client();
+
+
+class SharedDataTest {
+
+	constructor() {
+		/** @type {Array<{data:ExchangeData, time:Date}>} */
+		this._exdata = [];
+		this._btcusd = { data: 0.0, time: new Date(0) };
+		this._blockcount = { data: 0, time: new Date(0) };
+		this._mncount = { data: 0, time: new Date(0) };
+		this._supply = { data: 0, time: new Date(0) };
+		conf.ticker.forEach(x => this._exdata.push({ data: x, time: new Date(0) }));
+	}
+
+	get_ticker(ticker) {
+		// if current_date - stored_date > tick_rate => refresh ?
+	}
+	price_avg() {
+
+	}
+	price_btc_usd() {
+
+	}
+	blockcount() {
+
+	}
+	mncount() {
+
+	}
+	supply() {
+
+	}
+}
 
 
 class ExchangeData {
@@ -193,19 +236,9 @@ function get_ticker(ticker) {
         }
 
         switch (exchange.toLowerCase()) {
-            case "cryptobridge": {
-                exdata.link = `https://wallet.crypto-bridge.org/market/BRIDGE.${coin_up[0]}_BRIDGE.${coin_up[1]}`;
-                js_request(`https://api.crypto-bridge.org/api/v1/ticker/${coin_up[0]}_${coin_up[1]}`, res => exdata.fillj(res, "last", "volume", "bid", "ask", "percentChange"));
-                break;
-            }
             case "crex24": {
                 exdata.link = `https://crex24.com/exchange/${coin_up[0]}-${coin_up[1]}`;
                 js_request(`https://api.crex24.com/v2/public/tickers?instrument=${coin_up[0]}-${coin_up[1]}`, res => exdata.fillj(res[0], "last", "volumeInBtc", "bid", "ask", "percentChange"));
-                break;
-            }
-            case "coinexchange": {
-                exdata.link = `https://www.coinexchange.io/market/${coin_up[0]}/${coin_up[1]}`;
-                js_request(`https://www.coinexchange.io/api/v1/getmarketsummary?market_id=` + conf.special_ticker.CoinExchange, res => exdata.fillj(res.result, "LastPrice", "BTCVolume", "BidPrice", "AskPrice", "Change"));
                 break;
             }
             case "graviex": {
@@ -216,36 +249,11 @@ function get_ticker(ticker) {
                 });
                 break;
             }
-            case "escodex": {
-                exdata.link = `https://wallet.escodex.com/market/ESCODEX.${coin_up[0]}_ESCODEX.${coin_up[1]}`;
-                js_request(`http://labs.escodex.com/api/ticker`, res => exdata.fillj(res.find(x => x.base === coin_up[1] && x.quote === coin_up[0]), "latest", "base_volume", "highest_bid", "lowest_ask", "percent_change"));
-                break;
-            }
-            case "cryptopia": {
-                exdata.link = `https://www.cryptopia.co.nz/Exchange/?market=${coin_up[0]}_${coin_up[1]}`;
-                js_request(`https://www.cryptopia.co.nz/api/GetMarket/${coin_up[0]}_${coin_up[1]}`, res => exdata.fillj(res.Data, "LastPrice", "BaseVolume", "AskPrice", "BidPrice", "Change"));
-                break;
-            }
             case "stex": {
                 exdata.link = `https://app.stex.com/en/trade/pair/${coin_up[1]}/${coin_up[0]}`;
                 js_request(`https://app.stex.com/api2/ticker`, res => {
                     tmp = res.find(x => x.market_name === `${coin_up[0]}_${coin_up[1]}`);
                     exdata.fill(tmp.last, (parseFloat(tmp.last) + parseFloat(tmp.lastDayAgo)) / 2 * tmp.vol, tmp.ask, tmp.bid, tmp.lastDayAgo !== 0 ? (tmp.last / tmp.lastDayAgo - 1) * 100 : 0); // volume and change not 100% accurate
-                });
-                break;
-            }
-            case "c-cex": {
-                exdata.link = `https://c-cex.com/?p=${coin_lw[0]}-{coin_lw[1]}`;
-                Promise.all([
-                    async_request(`https://c-cex.com/t/${coin_lw[0]}-${coin_lw[1]}.json`).catch(() => { }),
-                    async_request(`https://c-cex.com/t/volume_${coin_lw[1]}.json`).catch(() => { })
-                ]).then(([ticker, volume]) => {
-                    try {
-                        exdata.fillj(JSON.parse(ticker).ticker, "lastprice", "", "buy", "sell", "");
-                        exdata.volume = ternary_try(() => parseFloat(JSON.parse(volume).ticker[coin_lw[0]].vol).toFixed(8), "Error");
-                    }
-                    catch (e) { /**/ }
-                    resolve(exdata);
                 });
                 break;
             }
@@ -339,36 +347,6 @@ function get_ticker(ticker) {
                 });
                 break;
             }
-            case "hotdex": {
-                // npm install bitsharesjs-ws
-                exdata.link = `https://wallet.hotdex.eu/market/HOTDEX.${coin_up[0]}_HOTDEX.${coin_up[1]}`;
-                BsApis.instance("wss://bitshares.openledger.info/ws", true).init_promise.then(async () => {
-                    try {
-                        let ticker = await BsApis.instance().db_api().exec("get_ticker", [`HOTDEX.${coin_up[1]}`, `HOTDEX.${coin_up[0]}`]);
-                        exdata.fillj(ticker, "latest", "base_volume", "highest_bid", "lowest_ask", "percent_change");
-                    } catch (e) { /**/ }
-                    resolve(exdata);
-                }).catch(e => resolve(exdata));
-                break;
-            }
-            case "midex": {
-                exdata.link = `https://en.midex.com/trade/${coin_up[0]}_${coin_up[1]}`;
-                Promise.all([
-                    async_request(`https://robot.midex.com/v1/currency_pair/${coin_lw[0]}${coin_lw[1]}/ticker`).catch(() => { }),
-                    async_request(`https://robot.midex.com/v1/currency_pair/${coin_lw[0]}${coin_lw[1]}/trades`).catch(() => { })
-                ]).then(([res, ord]) => {
-                    try {
-                        res = JSON.parse(res);
-                        ord = JSON.parse(ord);
-                        let vol = 0.0;
-                        ord.forEach(x => vol += x.price * x.quantity);
-                        exdata.fill(ord.length ? ord[0].price : 0, vol, res.buy_price, res.sell_price, res.change24);
-                    }
-                    catch (e) { /**/ }
-                    resolve(exdata);
-                });
-                break;
-			}
 			case "cryptohubexchange": {
 				exdata.link = `https://cryptohubexchange.com/market/${coin_up[0]}/${coin_up[1]}/`;
 				js_request(`https://cryptohubexchange.com/api/market/ticker/${coin_up[0]}/`, res => exdata.fillj(res[`${coin_up[1]}_${coin_up[0]}`], "last", "baseVolume", "highestBid", "lowestAsk", "percentChange"));
@@ -551,7 +529,6 @@ class BotCommand {
             this.fn_send(embed);
         });
     }
-
     stats() {
         return Promise.all([
             new Promise((resolve, reject) => resolve(bash_cmd(conf.requests.blockcount))),
@@ -648,7 +625,8 @@ class BotCommand {
             this.fn_send(embed);
 
         });
-    }
+	}
+
     stages() {
         return new Promise((resolve, reject) => resolve(bash_cmd(conf.requests.blockcount))).then(blockcount => {
 
@@ -1426,15 +1404,6 @@ client.on("message", msg => {
     }
 
 });
-
-if (conf.ticker.some(x => ["hotdex"].includes((Array.isArray(x) ? x[0] : x).toLowerCase()))) {
-    try {
-        BsApis = require("bitsharesjs-ws").Apis;
-    } catch (e) {
-        console.log("ERROR: you need to type 'npm install bitsharesjs-ws' to use one or some of the exchanges in the config file");
-        return;
-    }
-}
 
 
 if (process.argv.length >= 3 && process.argv[2] === "background")
