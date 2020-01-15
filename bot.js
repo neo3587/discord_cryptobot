@@ -12,8 +12,8 @@
 		[ ] price & stats monitor only
 		[ ] channel name price & stats
 		[ ] shared calls
-		[ ] remove useless commands: explorer & user address
-		[ ] join my-masternode colors
+		[X] remove useless commands: explorer & user address
+		[X] join my-masternode colors
 		[ ] my-earnings count only enabled nodes & show disabled count
 		[ ] check for new exchanges to add
 */
@@ -25,17 +25,14 @@ const path = require("path");
 const { spawn, spawnSync } = require("child_process");
 
 const config_json_file = path.dirname(process.argv[1]) + "/config.json";
-const users_addr_folder = path.dirname(process.argv[1]) + "/.db_users_addr";
 const users_mn_folder = path.dirname(process.argv[1]) + "/.db_users_mn";
 
 
 /** @typedef {Object} Configuration
   * @property {string[]} special_ticker -
   * @property {Array<string|string[]>} ticker -
-  * @property {{price:number, stats:number, stages:number, earnings:number, mining:number, addnodes:number, balance:number, block_hash:number,
-                my_address_add:number, my_address_del:number, my_address_list:number, my_balance:number, 
-                my_masternode_add:number, my_masternode_del:number, my_masternode_list:number, my_earnings:number,
-                help:number, about:number, warning:number, error:number}} color -
+  * @property {{price:number, stats:number, stages:number, earnings:number, mining:number, addnodes:number,
+                my_masternode:number, help:number, about:number, warning:number, error:number}} color -
   * @property {string[]} devs -
   * @property {{block:number, coll?: number, mn?:number, pos?:number, pow?:number}[]} stages -
   * @property {{blockcount:string, mncount:string, supply:string, balance:string, blockindex:string, blockhash:string, mnstat:string, addnodes:string}} requests -
@@ -54,7 +51,6 @@ const users_mn_folder = path.dirname(process.argv[1]) + "/.db_users_mn";
 */
 /** @type {Configuration} */
 const conf = require(config_json_file);
-const shared = new SharedDataTest();
 const client = new Discord.Client();
 
 
@@ -70,25 +66,51 @@ class SharedDataTest {
 		conf.ticker.forEach(x => this._exdata.push({ data: x, time: new Date(0) }));
 	}
 
+	_refresh(data, fn) {
+		return new Promise((resolve, reject) => {
+			if (new Date() - data.time < conf.tickrate) {
+				resolve(data.data);
+				return;
+			}
+			data.time = new Date();
+			resolve(fn());
+		});
+	}
+
 	get_ticker(ticker) {
-		// if current_date - stored_date > tick_rate => refresh ?
+		return this._refresh(this._exdata[ticker], () => { });
 	}
 	price_avg() {
-
+		return new Promise((resolve, reject) => {
+			let promises = [];
+			for (let ticker of conf.ticker.filter(x => !Array.isArray(x) || x[2].toUpperCase() === "BTC"))
+				promises.push(this.get_ticker(ticker));
+			Promise.all(promises).then(values => {
+				let price = 0.00, weight = 0.00;
+				values = values.filter(x => !isNaN(x.price));
+				values.forEach(x => {
+					x.volume = isNaN(x.volume) ? 0 : parseFloat(x.volume);
+					weight += x.volume;
+				});
+				values.forEach(x => price += parseFloat(x.price) * (weight !== 0 ? x.volume / weight : 1 / values.length));
+				resolve(values.length === 0 ? undefined : price);
+			});
+		});
 	}
 	price_btc_usd() {
-
+		return this._refresh(this._btcusd, () => { });
 	}
 	blockcount() {
-
+		return this._refresh(this._blockcount, () => { });
 	}
 	mncount() {
-
+		return this._refresh(this._mncount, () => { });
 	}
 	supply() {
-
+		return this._refresh(this._supply, () => { });
 	}
 }
+const shared = new SharedDataTest();
 
 
 class ExchangeData {
@@ -210,14 +232,6 @@ function get_ticker(ticker) {
                 catch (e) { /**/ }
                 resolve(exdata);
             }).catch(() => resolve(exdata));
-        };
-        const ternary_try = (fn_try, res_catch) => {
-            try {
-                return fn_try();
-            }
-            catch (e) {
-                return res_catch;
-            }
         };
 
         let exdata = new ExchangeData(), tmp, coin_up, coin_lw, exchange;
@@ -364,6 +378,14 @@ function get_ticker(ticker) {
 
     });
 }
+function ternary_try(fn_try, fn_catch) {
+	try {
+		return fn_try();
+	}
+	catch (e) {
+		return fn_catch();
+	}
+};
 function price_avg() {
     return new Promise((resolve, reject) => {
         let promises = [];
@@ -783,176 +805,6 @@ class BotCommand {
         });
     }
 
-    balance(addr) {
-        try {
-            let json = JSON.parse(bash_cmd(conf.requests.balance + addr));
-            if (json.sent !== undefined && json.received !== undefined && json.balance !== undefined) {
-                this.fn_send({
-                    embed: {
-                        title: "Balance",
-                        color: conf.color.balance,
-                        fields: [
-                            {
-                                name: "Address",
-                                value: addr
-                            },
-                            {
-                                name: "Sent",
-                                value: json.sent.toString().replace(/(\d)(?=(?:\d{3})+(?:\.|$))|(\.\d{4}?)\d*$/g, (m, s1, s2) => s2 || s1 + ',') + " " + conf.coin,
-                                inline: true
-                            },
-                            {
-                                name: "Received",
-                                value: json.received.toString().replace(/(\d)(?=(?:\d{3})+(?:\.|$))|(\.\d{4}?)\d*$/g, (m, s1, s2) => s2 || s1 + ',') + " " + conf.coin,
-                                inline: true
-                            },
-                            {
-                                name: "Balance",
-                                value: json.balance.toString().replace(/(\d)(?=(?:\d{3})+(?:\.|$))|(\.\d{4}?)\d*$/g, (m, s1, s2) => s2 || s1 + ',') + " " + conf.coin,
-                                inline: true
-                            }
-                        ],
-                        timestamp: new Date()
-                    }
-                });
-                return;
-            }
-        }
-        catch (e) { /**/ }
-        this.fn_send(simple_message("Balance", "Invalid address: `" + addr + "`\n(Addresses that never received a single coin might be considered as invalid)"));
-    }
-    block_index(index) {
-        this.block_hash(bash_cmd(conf.requests.blockindex + index));
-    }
-    block_hash(hash) {
-        
-        if (/^[A-Za-z0-9\n]+$/.test(hash)) {
-            let str = "";
-            try {
-                let json = JSON.parse(bash_cmd(conf.requests.blockhash + hash));
-                str =
-                    "**Index:** " + json.height + "\n" +
-                    "**Hash:** " + json.hash + "\n" +
-                    "**Confirmations:** " + json.confirmations + "\n" +
-                    "**Size:** " + json.size + "\n" +
-                    "**Date:** " + new Date(new Number(json.time) * 1000).toUTCString() + "\n" +
-                    "**Prev Hash:** " + json.previousblockhash + "\n" +
-                    "**Next Hash:** " + json.nextblockhash + "\n" +
-                    "**Transactions:**\n";
-                for (let i = 0; i < json.tx.length; i++)
-                    str += json.tx[i] + "\n";
-                this.fn_send(simple_message("Block info", str, conf.color.block_hash));
-                return;
-            }
-            catch (e) { /**/ }
-        }
-        this.fn_send(simple_message("Block info", "Invalid block index or hash"));
-    }
-
-    my_address_add(addrs) {
-        create_no_exists(users_addr_folder);
-        for (let addr of addrs) {
-            try {
-                let json = JSON.parse(bash_cmd(conf.requests.balance + addr));
-                if (json.sent !== undefined && json.received !== undefined && json.balance !== undefined) {
-                    let addrs_list = fs.existsSync(users_addr_folder + "/" + this.msg.author.id + ".txt") ? fs.readFileSync(users_addr_folder + "/" + this.msg.author.id + ".txt", "utf8").split(/\r?\n/) : [];
-                    if (addrs_list.indexOf(addr) === -1) {
-                        fs.writeFileSync(users_addr_folder + "/" + this.msg.author.id + ".txt", addrs_list.concat([addr]).join("\n"));
-                        this.fn_send(simple_message("User Address Add", "Address `" + addr + "` assigned to <@" + this.msg.author.id + ">", conf.color.my_address_add));
-                    }
-                    else {
-                        this.fn_send(simple_message("User Address Add", "Address `" + addr + "` already has been assigned to <@" + this.msg.author.id + ">", conf.color.my_address_add));
-                    }
-                    continue;
-                }
-            }
-            catch (e) { /**/ }
-            this.fn_send(simple_message("User Address Add", "Invalid address: `" + addr + "`\n(Addresses that never received a single coin might be considered as invalid)"));
-        }
-    }
-    my_address_del(addrs) {
-        create_no_exists(users_addr_folder);
-        for (let addr of addrs) {
-            if (!fs.existsSync(users_addr_folder + "/" + this.msg.author.id + ".txt")) {
-                this.fn_send(simple_message("User Address Delete", "There aren't addresses assigned to <@" + this.msg.author.id + ">", conf.color.warning));
-                return;
-            }
-            let addrs_list = fs.readFileSync(users_addr_folder + "/" + this.msg.author.id + ".txt", "utf8").split(/\r?\n/).filter(Boolean);
-            let index = addrs_list.indexOf(addr);
-            if (index !== -1) {
-                addrs_list.splice(index, 1);
-                if (addrs_list.length)
-                    fs.writeFileSync(users_addr_folder + "/" + this.msg.author.id + ".txt", addrs_list.join("\n"));
-                else
-                    fs.unlinkSync(users_addr_folder + "/" + this.msg.author.id + ".txt");
-                this.fn_send(simple_message("User Address Delete", "Address `" + addr + "` deleted from <@" + this.msg.author.id + "> assigned addresses", conf.color.my_address_del));
-            }
-            else {
-                this.fn_send(simple_message("User Address Delete", "Address `" + addr + "` isn't assgined to <@" + this.msg.author.id + ">\nUse `" + conf.prefix + "my-address-list` to get your assigned addresses"));
-            }
-        }
-    }
-    my_address_list() {
-        create_no_exists(users_addr_folder);
-        if (!fs.existsSync(users_addr_folder + "/" + this.msg.author.id + ".txt")) {
-            this.fn_send(simple_message("User Address List", "There aren't addresses assigned to <@" + this.msg.author.id + ">\nUse `" + conf.prefix + "my-address-add ADDRESS` to assign addresses to your account", conf.color.warning));
-            return;
-        }
-
-        let addr_str = "`" + fs.readFileSync(users_addr_folder + "/" + this.msg.author.id + ".txt", "utf8").split(/\r?\n/).filter(Boolean).join("`, `") + "`";
-        if (addr_str.length < 2000) {
-            this.fn_send(simple_message("User Address List", addr_str, conf.color.my_address_list));
-        }
-        else {
-            this.fn_send(simple_message("User Address List", "Address list too large, sent via dm", conf.color.warning));
-            this.msg.author.send(addr_str);
-        }
-    }
-    my_balance() {
-        create_no_exists(users_addr_folder);
-        if (!fs.existsSync(users_addr_folder + "/" + this.msg.author.id + ".txt")) {
-            this.fn_send(simple_message("User Balance", "There aren't addresses assigned to <@" + this.msg.author.id + ">\nUse `" + conf.prefix + "my-address-add ADDRESS` to assign addresses to your account", conf.color.my_balance));
-            return;
-        }
-
-        let sent = 0.00, recv = 0.00, bal = 0.00;
-        for (let addr of fs.readFileSync(users_addr_folder + "/" + this.msg.author.id + ".txt", "utf-8").split(/\r?\n/).filter(Boolean)) {
-            try {
-                let json = JSON.parse(bash_cmd(conf.requests.balance + addr));
-                if (json.sent !== undefined && json.received !== undefined && json.balance !== undefined) {
-                    sent += parseFloat(json.sent);
-                    recv += parseFloat(json.received);
-                    bal += parseFloat(json.balance);
-                }
-            }
-            catch (e) { /**/ }
-        }
-        this.fn_send({
-            embed: {
-                title: "User Balance",
-                color: conf.color.my_balance,
-                fields: [
-                    {
-                        name: "Sent",
-                        value: sent.toString().replace(/(\d)(?=(?:\d{3})+(?:\.|$))|(\.\d{4}?)\d*$/g, (m, s1, s2) => s2 || s1 + ',') + " " + conf.coin,
-                        inline: true
-                    },
-                    {
-                        name: "Received",
-                        value: recv.toString().replace(/(\d)(?=(?:\d{3})+(?:\.|$))|(\.\d{4}?)\d*$/g, (m, s1, s2) => s2 || s1 + ',') + " " + conf.coin,
-                        inline: true
-                    },
-                    {
-                        name: "Balance",
-                        value: bal.toString().replace(/(\d)(?=(?:\d{3})+(?:\.|$))|(\.\d{4}?)\d*$/g, (m, s1, s2) => s2 || s1 + ',') + " " + conf.coin,
-                        inline: true
-                    }
-                ],
-                timestamp: new Date()
-            }
-        });
-    }
-
     my_masternode_add(addrs) {
         create_no_exists(users_mn_folder);
         for (let addr of addrs) {
@@ -964,7 +816,7 @@ class BotCommand {
                     let addrs_list = fs.existsSync(users_mn_folder + "/" + this.msg.author.id + ".txt") ? fs.readFileSync(users_mn_folder + "/" + this.msg.author.id + ".txt", "utf8").split(/\r?\n/) : [];
                     if (addrs_list.indexOf(addr) === -1) {
                         fs.writeFileSync(users_mn_folder + "/" + this.msg.author.id + ".txt", addrs_list.concat([addr]).join("\n"));
-                        this.fn_send(simple_message("User Masternode Add", "Masternode address `" + addr + "` assigned to <@" + this.msg.author.id + ">\nStatus: " + json.status, conf.color.my_masternode_add));
+                        this.fn_send(simple_message("User Masternode Add", "Masternode address `" + addr + "` assigned to <@" + this.msg.author.id + ">\nStatus: " + json.status, conf.color.my_masternode));
                     }
                     else {
                         this.fn_send(simple_message("User Masternode Add", "Masternode address `" + addr + "` already has been assigned to <@" + this.msg.author.id + ">", conf.color.warning));
@@ -991,7 +843,7 @@ class BotCommand {
                     fs.writeFileSync(users_mn_folder + "/" + this.msg.author.id + ".txt", addrs_list.join("\n"));
                 else
                     fs.unlinkSync(users_mn_folder + "/" + this.msg.author.id + ".txt");
-                this.fn_send(simple_message("User Masternode Delete", "Masternode address `" + addr + "` deleted from <@" + this.msg.author.id + "> assigned addresses", conf.color.my_masternode_del));
+                this.fn_send(simple_message("User Masternode Delete", "Masternode address `" + addr + "` deleted from <@" + this.msg.author.id + "> assigned addresses", conf.color.my_masternode));
             }
             else {
                 this.fn_send(simple_message("User Masternode Delete", "Masternode address `" + addr + "` isn't assgined to <@" + this.msg.author.id + ">\nUse `" + conf.prefix + "my-masternode-list` to get your assigned masternode addresses"));
@@ -1022,13 +874,13 @@ class BotCommand {
         }
 
         if (mn_str.length < 2000) {
-            this.fn_send(simple_message("User Masternode List", mn_str, conf.color.my_masternode_list));
+            this.fn_send(simple_message("User Masternode List", mn_str, conf.color.my_masternode));
         }
         else {
             let mn_split = mn_str.split(/\r?\n/);
             let splits = parseInt(mn_split.length / 30) + 1;
             for (let i = 1; mn_split.length > 0; i++)
-                this.fn_send(simple_message("User Masternode List (" + i + "/" + splits + ")", mn_split.splice(0, 30).join("\n"), conf.color.my_masternode_list));
+                this.fn_send(simple_message("User Masternode List (" + i + "/" + splits + ")", mn_split.splice(0, 30).join("\n"), conf.color.my_masternode));
         }
     }
     my_earnings() {
@@ -1058,7 +910,7 @@ class BotCommand {
                 this.fn_send({
                     embed: {
                         title: "User Earnings (" + mns + " MNs)",
-                        color: conf.color.my_earnings,
+                        color: conf.color.my_masternode,
                         fields: [
                             {
                                 name: "Time to get 1 MN",
@@ -1094,21 +946,6 @@ class BotCommand {
                             " - **" + conf.prefix + "earnings [amount of MNs]** : get the expected earnings per masternode, aditionally you can put the amount of MNs\n" +
                             " - **" + conf.prefix + "mining <hashrate> [K/M/G/T]** : get the expected earnings with the given hashrate, aditionally you can put the hashrate multiplier (K = KHash/s, M = MHash/s, ...)\n" +
                             " - **" + conf.prefix + "addnodes** : get a addnodes list for the chain sync"
-                    },
-                    {
-                        name: "Explorer",
-                        value:
-                            " - **" + conf.prefix + "balance <address>** : show the balance, sent and received of the given address\n" +
-                            " - **" + conf.prefix + "block-index <number>** : show the info of the block by its index\n" +
-                            " - **" + conf.prefix + "block-hash <hash>** : show the info of the block by its hash"
-                    },
-                    {
-                        name: "User Address",
-                        value:
-                            " - **" + conf.prefix + "my-address-add <address>** : adds an address to your address list\n" +
-                            " - **" + conf.prefix + "my-address-del <address>** : removes an address from your address list\n" +
-                            " - **" + conf.prefix + "my-address-list** : show all your listed addresses\n" +
-                            " - **" + conf.prefix + "my-balance** : shows your total balance, sent and received"
                     },
                     {
                         name: "User Masternode",
@@ -1305,47 +1142,6 @@ client.on("message", msg => {
             break;
         }
 
-        // Explorer:
-
-        case "balance": {
-            if (enabled_cmd("balance", valid_request("balance")) && !error_noparam(1, "You need to provide an address"))
-                cmd.balance(args[1]);
-            break;
-        }
-        case "block-index": {
-            if (enabled_cmd("block-index", valid_request("blockhash") && valid_request("blockindex")) && !error_noparam(1, "You need to provide a block number"))
-                cmd.block_index(args[1]);
-            break;
-        }
-        case "block-hash": {
-            if (enabled_cmd("block-hash", valid_request("blockhash")) && !error_noparam(1, "You need to provide a block hash"))
-                cmd.block_hash(args[1]);
-            break;
-        }
-
-        // User addresses:
-
-        case "my-address-add": {
-            if (enabled_cmd("my-address-add", conf.useraddrs || valid_request("balance")) && !error_noparam(1, "You need to provide at least one address"))
-                cmd.my_address_add(args.slice(1));
-            break;
-        }
-        case "my-address-del": {
-            if (enabled_cmd("my-address-del", conf.useraddrs || valid_request("balance")) && !error_noparam(1, "You need to provide at least one address"))
-                cmd.my_address_del(args.slice(1));
-            break;
-        }
-        case "my-address-list": {
-            if (enabled_cmd("my-address-list", conf.useraddrs || valid_request("balance")))
-                cmd.my_address_list();
-            break;
-        }
-        case "my-balance": {
-            if (enabled_cmd("my-balance", conf.useraddrs || valid_request("balance")))
-                cmd.my_balance();
-            break;
-        }
-
         // User masternodes:
 
         case "my-masternode-add": {
@@ -1415,3 +1211,4 @@ else if (process.argv.length >= 3 && process.argv[2] === "handled_child")
     });
 else
 	handle_child();
+
