@@ -49,16 +49,7 @@ node bot.js background
 - **`!stages:`** Shows the upcoming reward structure changes.
 - **`!earnings [amount_on_mns]`:** Shows the ROI (in percentage and days), the MN price, the daily/weekly/monthly/yearly earnings for your cryptocurrency and optionally you can input the amount of mns to calculate the earnings.
 - **`!mining <number> [K/M/G/T]`:** Shows the expected earnings with the given hashrate, optionally you can use K,M,G or T to indicate the multiplier, example: ```!mining 500``` => asks for 500 H/s, ```!mining 20 M``` => asks for 20 MH/s, etc.
-  
-- **`!balance <address>`:** Shows the sent, received and current balance of the given address.
-- **`!block-index <number>`:** Shows the block stats of the given block number.
-- **`!block-hash <hash>`:** Shows the block stats of the given block hash.
 
-- **`!my-address-add <address>`:** Adds the given address to the user assigned addresses list.
-- **`!my-address-del <address>`:** Removes the given address from the user assigned addresses list.
-- **`!my-address-list:`** Shows the user addresses list.
-- **`!my-balance:`** Shows the sent, received and current balance of user.
-  
 - **`!my-masternode-add <address>`:** Adds the given address to the user assigned masternode addresses list.
 - **`!my-masternode-del <address>`:** Removes the given address from the user assigned masternode addresses list.
 - **`!my-mastenode-list:`** Shows the user masternode addresses list and their status.
@@ -118,9 +109,6 @@ You'll have to modify the "config.json" file to make it fit with your cryptocurr
     "blockcount": "mywalletname-cli getblockcount",
     "mncount":    "mywalletname-cli masternode count,
     "supply":     "curl -s http://mycoinexplorer.com/ext/getmoneysupply", 
-    "balance":    "curl -s http://mycoinexplorer.com/ext/getaddress/",    
-    "blockindex": "mywalletname-cli getblockhash ",     // <b>!!!</b> trailing space added on purpose or won't work, remove it only if using a url, same for "balance" and "blockhash".
-    "blockhash":  "mywalletname-cli getblock ",
     "hashrate":   "curl -s http://mycoinexplorer.com/api/getnetworkhashps",
     "mnstat":     "mywalletname-cli masternode list ",  // some wallets may require a custom script instead
     "addnodes":   "mywalletname-cli getpeerinfo"
@@ -129,9 +117,6 @@ Important note if you customize the requests:
     - "blockcount"  must return a string convertible into a number.
     - "mncount"     must return a string convertible into a number.
     - "supply"      must return a string convertible into a number.
-    - "balance"     expects to receive a string (the address) and must return a json type string with a number or string in three attributes called "sent", "received" and "balance".
-    - "blockindex": expects to receive a string convertible into a number and must return a string that indicates the block hash of the given block number.
-    - "blockhash":  expects to receive a string (the hash) and must return a json type string with the attributes "height": (block number), "hash": (block hash), "confirmations": (number), "size": (size of the block), "previousblockhash": (last block hash), "nextblockhash": (next block hash) and "tx": [ (list of the block transactions) ].
     - "hashrate":   expects to receive a string convertible into a number.
     - "mnstat":     expects a json with "addr" and "status" attributes.
     - "addnodes":   expects a json array of objects with a "addr" attribute.
@@ -161,9 +146,7 @@ Important note if you customize the requests:
 }
 ```
 - **hidenotsupported**: Hide the ticker values from exchanges APIs that doesn't support that feature instead of showing "Not Supported".
-- **useraddrs:** Enable the user address commands (`!my-address-add`, `!my-address-del`, `!my-address-list`, `!my-balance`).
 - **usermns:** Enable the user masternode commands (`!my-masternode-add`, `!my-masternode-del`, `!my-masternode-list`, `!my-balance`).
-- **sourcecode:** You don't need to touch this, it's just in case I change the repo in the future.
 - **channel:** List of the ids of the channels where the bot will listen and reply the commands (leaving the list empty will listen all the channels).
 - **prefix:** The initial character for the commands.
 - **coin:** The name of your coin.
