@@ -49,7 +49,16 @@ node bot.js background
 - **`!stages:`** Shows the upcoming reward structure changes.
 - **`!earnings [amount_on_mns]`:** Shows the ROI (in percentage and days), the MN price, the daily/weekly/monthly/yearly earnings for your cryptocurrency and optionally you can input the amount of mns to calculate the earnings.
 - **`!mining <number> [K/M/G/T]`:** Shows the expected earnings with the given hashrate, optionally you can use K,M,G or T to indicate the multiplier, example: ```!mining 500``` => asks for 500 H/s, ```!mining 20 M``` => asks for 20 MH/s, etc.
+  
+- **`!balance <address>`:** Shows the sent, received and current balance of the given address.
+- **`!block-index <number>`:** Shows the block stats of the given block number.
+- **`!block-hash <hash>`:** Shows the block stats of the given block hash.
 
+- **`!my-address-add <address>`:** Adds the given address to the user assigned addresses list.
+- **`!my-address-del <address>`:** Removes the given address from the user assigned addresses list.
+- **`!my-address-list:`** Shows the user addresses list.
+- **`!my-balance:`** Shows the sent, received and current balance of user.
+  
 - **`!my-masternode-add <address>`:** Adds the given address to the user assigned masternode addresses list.
 - **`!my-masternode-del <address>`:** Removes the given address from the user assigned masternode addresses list.
 - **`!my-mastenode-list:`** Shows the user masternode addresses list and their status.
@@ -70,13 +79,11 @@ You'll have to modify the "config.json" file to make it fit with your cryptocurr
 - **ticker:** Here is where you put the name of every exchange where you're listed, the name be equal (uppercases not necessary but recommended) to the names from **Currently supported exchanges**, follow this scheme to add the links of the API and the market: 
 ```
 "ticker": [
-    "CryptoBridge",
     "Crex24",
-    "CoinExchange",
+    "Graviex",
     ["Crex24", "BTC", "USD"]  // optionally you can set custom pairs like this
 ]
 ```
-- **special_ticker:** CoinExchange requires a specific market id from https://www.coinexchange.io/api/v1/getmarkets to get a filtered ticker, not necessary to touch this if you don't use this exchange.
 - **color:** Just the color of the embed messages.
 - **devs:** List of the unique discord ids from the people who have permisions to use **!conf-get** and **!conf-set**.
 - **stages:** List of every stage of the coin (MN/POS rewards and collateral from block X to Y), it follows this scheme: 
@@ -103,14 +110,14 @@ You'll have to modify the "config.json" file to make it fit with your cryptocurr
     }
 ]
 ```
-- **requests:** The bash commands and/or urls used to get the data for **!stats**, **!earnings**, **!balance**, **!block-index**, **!block-hash** and **!mining**. Leaving a empty string or removing the parameter will block or partially block the bot commands that makes use of the data. It's expected to use RPC commands and explorer urls, but you can customize them to retrieve the data from other sources (Example: "blockcount": "customProgramToGetBlockCount.exe"), example of typical requests:
+- **requests:** The bash commands used to get the data for most of the commands. Leaving a empty string or removing the parameter will block partially or completely the commands that makes use of the empty data. It's expected to use RPC commands and explorer urls, but you can customize them to retrieve the data from other sources (Example: "blockcount": "customProgramToGetBlockCount.exe"), example of typical requests:
 <pre>
 "requests": {
     "blockcount": "mywalletname-cli getblockcount",
     "mncount":    "mywalletname-cli masternode count,
     "supply":     "curl -s http://mycoinexplorer.com/ext/getmoneysupply", 
     "hashrate":   "curl -s http://mycoinexplorer.com/api/getnetworkhashps",
-    "mnstat":     "mywalletname-cli masternode list ",  // some wallets may require a custom script instead
+    "mnstat":     "mywalletname-cli masternode list",  // some wallets may require a custom script instead
     "addnodes":   "mywalletname-cli getpeerinfo"
 }
 Important note if you customize the requests: 
@@ -150,10 +157,11 @@ Important note if you customize the requests:
 - **channel:** List of the ids of the channels where the bot will listen and reply the commands (leaving the list empty will listen all the channels).
 - **prefix:** The initial character for the commands.
 - **coin:** The name of your coin.
+- **tickrate**: API calls minimum refresh time (price check, coin supply, masternode count, ...).
 - **blocktime:** Block time in seconds (used for some calculations).
 - **token:** The token of your bot.
 
-*NOTE: The token on config.json is just an example, not the real one (for obvious reasons), use yours to work with your discord server.*
+*NOTE: The config.json of the repo is made for MCPC, you can use it as a template for your coin and discord server*
 
 # <a name = "currently-supported-exchanges"></a> Currently supported exchanges
 
