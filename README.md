@@ -50,15 +50,6 @@ node bot.js background
 - **`!earnings [amount_on_mns]`:** Shows the ROI (in percentage and days), the MN price, the daily/weekly/monthly/yearly earnings for your cryptocurrency and optionally you can input the amount of mns to calculate the earnings.
 - **`!mining <number> [K/M/G/T]`:** Shows the expected earnings with the given hashrate, optionally you can use K,M,G or T to indicate the multiplier, example: ```!mining 500``` => asks for 500 H/s, ```!mining 20 M``` => asks for 20 MH/s, etc.
   
-- **`!balance <address>`:** Shows the sent, received and current balance of the given address.
-- **`!block-index <number>`:** Shows the block stats of the given block number.
-- **`!block-hash <hash>`:** Shows the block stats of the given block hash.
-
-- **`!my-address-add <address>`:** Adds the given address to the user assigned addresses list.
-- **`!my-address-del <address>`:** Removes the given address from the user assigned addresses list.
-- **`!my-address-list:`** Shows the user addresses list.
-- **`!my-balance:`** Shows the sent, received and current balance of user.
-  
 - **`!my-masternode-add <address>`:** Adds the given address to the user assigned masternode addresses list.
 - **`!my-masternode-del <address>`:** Removes the given address from the user assigned masternode addresses list.
 - **`!my-mastenode-list:`** Shows the user masternode addresses list and their status.
