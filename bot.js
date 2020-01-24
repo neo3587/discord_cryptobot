@@ -15,6 +15,7 @@
 		[X] remove useless commands: explorer & user address
 		[X] join my-masternode colors
 		[ ] my-earnings count only enabled nodes & show disabled count
+		[ ] monitor message edit instead of delete (purge message on init)
 		[ ] check for new exchanges to add
 */
 
@@ -28,7 +29,7 @@
   * @property {{blockcount:string, mncount:string, supply:string, balance:string, blockindex:string, blockhash:string, mnstat:string, addnodes:string}} requests -
   * @property {string[]} statorder -
   * @property {{enabled:true, channel:string, interval:number}} monitor -
-  * @property {Array<{channel:string, type:string, exchange?:string}>} channel_monitor -
+  * @property {{enabled:true, data:Array<{channel:string, type:string, exchange?:string}>, interval:number}} channel_monitor -
   * @property {boolean} hidenotsupported -
   * @property {boolean} useraddrs -
   * @property {boolean} usermns -
@@ -80,14 +81,13 @@ class ExchangeData {
 class SharedData {
 
 	constructor() {
-		/** @type {Array<{data:ExchangeData, time:Date}>} */
-		this._exdata = {};
+		/** @type {Array<{val:ExchangeData, time:Date}>} */
+		this._exdata = conf.ticker.map(x => ({ val: new ExchangeData(x), time: new Date(0) }));
 		this._btcusd = { val: 0.0, time: new Date(0) };
 		this._blockcount = { val: 0, time: new Date(0) };
 		this._mncount = { val: 0, time: new Date(0) };
 		this._supply = { val: 0, time: new Date(0) };
 		this._hashrate = { val: 0, time: new Date(0) };
-		conf.ticker.forEach(x => this._exdata[x] = { val: new ExchangeData(x), time: new Date(0) });
 	}
 
 	_refresh(data, fn) {
@@ -106,7 +106,7 @@ class SharedData {
 	}
 
 	get_ticker(ticker) {
-		return this._refresh(this._exdata[ticker], (resolve) => {
+		return this._refresh(this._exdata.find(x => x.val.name.toLowerCase() === ticker.toLowerCase()), (resolve) => {
 
 			const js_request = (url, fn) => {
 				async_request(url).then(x => {
@@ -851,7 +851,8 @@ const shared = new SharedData();
 
 
 function start_monitor() {
-    if (conf.monitor !== undefined && conf.monitor.enabled === true) {
+
+	if (conf.monitor !== undefined && conf.monitor.enabled === true) {
 
         const channel = client.channels.get(conf.monitor.channel);
         let embeds = [];
@@ -869,7 +870,7 @@ function start_monitor() {
                 await channel.send(emb);
 		};
 		
-        refresh_monitor().then(() => channel.client.setInterval(() => refresh_monitor(), conf.monitor.interval * 1000)).catch(async e => {
+        refresh_monitor().then(() => client.setInterval(() => refresh_monitor(), conf.monitor.interval * 1000)).catch(async e => {
             switch (e.code) {
                 case 50001:
                     console.log("\x1b[33mThe bot doesn't have permissions to READ MESSAGES from the monitor channel\x1b[0m");
@@ -892,7 +893,46 @@ function start_monitor() {
                     break;
             }
         });
-    }
+	}
+
+	if (conf.channel_monitor !== undefined && conf.channel_monitor.enabled === true) {
+
+		const fns = conf.channel_monitor.data.map(x => {
+			let channel = client.guilds.first().channels.get(x.channel);
+			let fn = async () => { };
+
+			switch (x.type) {
+				case "blockcount":
+					fn = async () => await shared.blockcount().then(blk => x.type + ": " + blk);
+					break;
+				case "mncount":
+					fn = async () => await shared.mncount().then(cnt => x.type + ": " + cnt);
+					break;
+				case "ticker":
+					fn = async () => await shared.get_ticker(x.exchange).then(tck => x.exchange + ": " + tck.price);
+					break;
+			}
+			return { fn: fn, channel: channel };
+		});
+
+		
+
+		const refresh_monitor = async () => {
+			fns.forEach(x => x.fn().then(res => x.channel.setName(res)));
+		};
+
+		refresh_monitor().then(() => client.setInterval(() => refresh_monitor(), conf.monitor.interval * 1000)).catch(async e => {
+			switch (e.code) {
+				//case 50013:
+					//console.log("\x1b[33mThe bot doesn't have permissions to SEND and/or MANAGE CHANNELS from the monitor channel\x1b[0m");
+					//break;
+				default:
+					console.log("Uknown error with the channel monitor:");
+					console.log(e);
+					break;
+			}
+		});
+	}
 }
 function configure_systemd(name) {
     if (process.platform === "linux") {
