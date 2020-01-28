@@ -10,7 +10,7 @@
 	ON PROGRESS:
 		[X] remove dead exchanges
 		[?] price & stats monitor only
-		[ ] channel name price & stats
+		[-] channel name price & stats
 		[X] shared calls
 		[X] remove useless commands: explorer & user address
 		[X] join my-masternode colors
@@ -48,6 +48,32 @@ const path = require("path");
 const { spawn, spawnSync } = require("child_process");
 
 
+class Mutex { 
+
+	constructor() {
+		this.queue = [];
+		this.locked = false;
+	}
+
+	lock() {
+		return new Promise((resolve, reject) => {
+			if (this.locked) {
+				this.queue.push(resolve);
+			}
+			else {
+				this.locked = true;
+				resolve();
+			}
+		});
+	}
+	unlock() {
+		if (this.queue.length > 0) 
+			this.queue.shift()();
+		else
+			this.locked = false;
+	}
+}
+
 class ExchangeData {
 	constructor(name) {
 		this.name = name;
@@ -81,16 +107,21 @@ class ExchangeData {
 class SharedData {
 
 	constructor() {
-		/** @type {Array<{val:ExchangeData, time:Date}>} */
-		this._exdata = conf.ticker.map(x => ({ val: new ExchangeData(x), time: new Date(0) }));
-		this._btcusd = { val: 0.0, time: new Date(0) };
-		this._blockcount = { val: 0, time: new Date(0) };
-		this._mncount = { val: 0, time: new Date(0) };
-		this._supply = { val: 0, time: new Date(0) };
-		this._hashrate = { val: 0, time: new Date(0) };
+		/** @type {Array<{val:ExchangeData, mtx:Mutex, time:Date}>} */
+		this._exdata = conf.ticker.map(x => ({ val: new ExchangeData(x), mtx: new Mutex(), time: new Date(0) }));
+		this._btcusd = { val: "", mtx: new Mutex(), time: new Date(0) };
+		this._blockcount = { val: "", mtx: new Mutex(), time: new Date(0) };
+		this._mncount = { val: "", mtx: new Mutex(), time: new Date(0) };
+		this._supply = { val: "", mtx: new Mutex(), time: new Date(0) };
+		this._hashrate = { val: "", mtx: new Mutex(), time: new Date(0) };
 	}
 
+	/** @param {{val:ExchangeData, mtx:Mutex, time:Date}} data -
+	  * @param {()} fn -
+	  * @returns {Promise} -
+	*/
 	_refresh(data, fn) {
+		data.mtx.lock();
 		return new Promise((resolve, reject) => {
 			if (new Date() - data.time >= conf.tickrate * 1000) {
 				data.time = new Date();
@@ -101,13 +132,14 @@ class SharedData {
 			}
 		}).then(x => {
 			data.val = x;
+			data.mtx.unlock();
 			return data.val;
 		});
 	}
 
 	get_ticker(ticker) {
 		return this._refresh(this._exdata.find(x => x.val.name.toLowerCase() === ticker.toLowerCase()), (resolve) => {
-
+			
 			const js_request = (url, fn) => {
 				async_request(url).then(x => {
 					try {
@@ -903,19 +935,17 @@ function start_monitor() {
 
 			switch (x.type) {
 				case "blockcount":
-					fn = async () => await shared.blockcount().then(blk => x.type + ": " + blk);
+					fn = () => shared.blockcount().then(blk => x.type + ": " + blk);
 					break;
 				case "mncount":
-					fn = async () => await shared.mncount().then(cnt => x.type + ": " + cnt);
+					fn = () => shared.mncount().then(cnt => x.type + ": " + cnt);
 					break;
 				case "ticker":
-					fn = async () => await shared.get_ticker(x.exchange).then(tck => x.exchange + ": " + tck.price);
+					fn = () => shared.get_ticker(x.exchange).then(tck => x.exchange + ": " + tck.price);
 					break;
 			}
 			return { fn: fn, channel: channel };
 		});
-
-		
 
 		const refresh_monitor = async () => {
 			fns.forEach(x => x.fn().then(res => x.channel.setName(res)));
