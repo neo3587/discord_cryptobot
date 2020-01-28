@@ -563,7 +563,10 @@
 		"blockcount": "MCPCoin-cli getblockcount",
 		"mncount": "MCPCoin-cli masternode count",
 		"supply": "curl -s https://explorer.mobilepaycoin.com/ext/getmoneysupply",
-		"mnstat": "MCPCoin-cli masternode list",
+		"balance": "curl -s https://explorer.mobilepaycoin.com/ext/getaddress/",
+		"blockindex": "MCPCoin-cli getblockhash ",
+		"blockhash": "MCPCoin-cli getblock ",
+		"mnstat": "MCPCoin-cli masternode list ",
 		"addnodes": "MCPCoin-cli getpeerinfo"
 	},
 	"statorder": [
@@ -584,8 +587,31 @@
 		"channel": "652578785375551540",
 		"interval": 180
 	},
+	"channel_monitor": {
+		"enabled": true,
+		"data": [
+			{
+				"channel": "671084902195658762",
+				"type": "ticker",
+				"exchange": "Crex24"
+			},
+			{
+				"channel": "671085710974910570",
+				"type": "ticker",
+				"exchange": "Graviex"
+			},
+			{
+				"channel": "671085807582576650",
+				"type": "blockcount"
+			},
+			{
+				"channel": "671085828436656128",
+				"type": "mncount"
+			}
+		],
+		"interval": 180
+	},
 	"hidenotsupported": false,
-	"useraddrs": true,
 	"usermns": true,
 	"channel": [ "639020404043808778" ],
 	"prefix": "!",
