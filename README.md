@@ -135,12 +135,39 @@ Important note if you customize the requests:
     "nextstage"    // requires requests.blockcount
   ]
 ```
-- **monitor**: Use separate channel where only the bot have permission to send messages to post every X time the price stats and earnings. It follows this scheme:
+- **monitor**: Use separate channel where only the bot have permission to send messages to post every X time the price, stats and earnings. It follows this scheme:
 ```
 "monitor": {
     "enabled": true,
     "channel": "531519255519428638", // channel id where the bot will post the info    
     "interval": 60                   // refresh the data every 60 seconds
+}
+```
+- **channel_monitor**: Use some locked voice channels where the users doesn't have connect permisions and the bot have edit persmisions to post every X time a custom set of stats. It follows this scheme:
+```
+"channel_monitor": {
+    "enabled": true,
+    "interval": 60,                      // refresh the data every 60 seconds
+    "data": [
+      {
+				"channel": "671084902195658762", // channel id where the bot will change it's name for info
+				"type": "ticker",                // info type, it can be either: ticker, blockcount or mncount
+				"exchange": "Crex24"             // exchange name, only for "ticker" type
+			},
+			{
+				"channel": "671085710974910570",
+				"type": "ticker",
+				"exchange": "Graviex"
+			},
+			{
+				"channel": "671085807582576650",
+				"type": "blockcount"
+			},
+			{
+				"channel": "671085828436656128",
+				"type": "mncount"
+			}
+    ]
 }
 ```
 - **hidenotsupported**: Hide the ticker values from exchanges APIs that doesn't support that feature instead of showing "Not Supported".
@@ -187,10 +214,11 @@ Important note if you customize the requests:
 
 # <a name = "image-examples"></a> Image examples
 
-<img src="https://i.imgur.com/rIm9HV0.png" /> 
-<img src="https://i.imgur.com/6O4lR9g.png" /> 
-<img src="https://i.imgur.com/rERmTJT.png" /> 
-<img src="https://i.imgur.com/JQjhFCs.png" />
+<img src="https://i.imgur.com/H9QgiNq.png" /> 
+<img src="https://i.imgur.com/svbb9Iy.png" /> 
+<img src="https://i.imgur.com/HH1DEZH.png" /> 
+<img src="https://i.imgur.com/ikZt4ec.png" />
+<img src="https://i.imgur.com/iOiz5KJ.png" />
 
 # <a name = "additional"></a> Additional
 
