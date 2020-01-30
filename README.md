@@ -2,8 +2,6 @@
 
 A discord bot to display the price of a cryptocurrency in every listed exchange, blockchain stats, expected earnings, etc.
 
-** Special note: In the following weeks, there will be changes that will significantly change the config.json structure **
-
 # Index
 
 - [How to install](#how-to-install)
